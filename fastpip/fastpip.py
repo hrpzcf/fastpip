@@ -24,11 +24,9 @@
 # SOFTWARE.
 ################################################################################
 
-# TODO 在IDLE运行输出异常
-
 import os
+import re
 import sys
-from re import match
 from threading import Thread
 from time import sleep
 
@@ -36,7 +34,7 @@ from .findpypath import all_py_paths, cur_py_path
 
 _show_running_tip = True
 
-# 镜像源：
+# 预设镜像源：
 mirrors = {
     'opentuna': 'https://opentuna.cn/pypi/web/simple',  # 清华源
     'tsinghua': 'https://pypi.tuna.tsinghua.edu.cn/simple',  # 清华源
@@ -49,14 +47,15 @@ mirrors = {
 
 # pip 命令
 _pipcmds = {
-    'INFO': '"{}" -V',
-    'LIST': '"{}" list',
-    'OUTDATED': '"{}" list --outdated',
-    'UPDATE_PIP': '"{}" install -i {} pip -U',
-    'SET_MIRROR': '"{}" config set global.index-url {}',
-    'GET_MIRROR': '"{}" config list',
-    'INSTALL': '"{}" install {}{}{}',
-    'UNINSTALL': '"{}" uninstall -y {}',
+    'info': '"{}" -V',
+    'list': '"{}" list',
+    'outdated': '"{}" list --outdated',
+    'update_pip': '"{}" install -i {} pip -U',
+    'set_mirror': '"{}" config set global.index-url {}',
+    'get_mirror': '"{}" config list',
+    'install': '"{}" install {}{}{}',
+    'uninstall': '"{}" uninstall -y {}',
+    'search': '"{}" search {}',
 }
 
 
@@ -135,7 +134,7 @@ def get_pip_path(py_path, *, auto):
     def match_pip(pip_dir):
         try:
             for file in os.listdir(pip_dir):
-                if res := match(r'^pip.*\.exe$', file):
+                if res := re.match(r'^pip.*\.exe$', file):
                     return os.path.join(pip_dir, res.group())
             raise FileNotFoundError(f'Scripts目录({pip_dir})中没有找到pip可执行文件。')
         except Exception:
@@ -162,10 +161,10 @@ def pip_info(*, py_path=''):
     直接打印PipInfo实例则显示概览。
     '''
     pip_path = get_pip_path(py_path, auto=True)
-    result = os.popen(_pipcmds['INFO'].format(pip_path)).read()
+    result = os.popen(_pipcmds['info'].format(pip_path)).read()
     if not result:
         return '没有获取到 pip 版本信息。'
-    result = match('pip (.+) from (.+) \(python (.+)\)', result.strip())
+    result = re.match('pip (.+) from (.+) \(python (.+)\)', result.strip())
     if result and len(res := result.groups()) == 3:
         return _PipInfo(*res)
     raise Exception('未期望的错误导致没有匹配到pip版本信息。')
@@ -179,7 +178,7 @@ def pkgs_info(py_path='', *, to_screen=False):
     pip_path = get_pip_path(py_path, auto=True)
     info_list = []
     tips = '正在获取(包名, 版本)列表'
-    command = _pipcmds['LIST'].format(pip_path)
+    command = _pipcmds['list'].format(pip_path)
     result = _start_cmd(command, tips, to_screen)
     if not result:
         return info_list
@@ -198,7 +197,7 @@ def pkgs_name(py_path='', *, to_screen=False):
     pip_path = get_pip_path(py_path, auto=True)
     name_list = []
     tips = '正在获取包名列表'
-    command = _pipcmds['LIST'].format(pip_path)
+    command = _pipcmds['list'].format(pip_path)
     result = _start_cmd(command, tips, to_screen)
     if not result:
         return name_list
@@ -217,7 +216,7 @@ def outdated(py_path='', *, to_screen=False):
     '''
     pip_path = get_pip_path(py_path, auto=True)
     outdated_pkgs_info = []
-    command = _pipcmds['OUTDATED'].format(pip_path)
+    command = _pipcmds['outdated'].format(pip_path)
     tips = 'PIP正在检查更新，请耐心等待'
     result = _start_cmd(command, tips, to_screen)
     if not result:
@@ -233,7 +232,7 @@ def update_pip(py_path='', url=mirrors['opentuna']):
     升级pip本身。
     '''
     pip_path = get_pip_path(py_path, auto=True)
-    result = os.popen(_pipcmds['UPDATE_PIP'].format(pip_path, url))
+    result = os.popen(_pipcmds['update_pip'].format(pip_path, url))
     return result.read()
 
 
@@ -244,7 +243,7 @@ def set_mirror(py_path='', url=mirrors['opentuna']):
     if not isinstance(url, str):
         raise TypeError('镜像源地址参数的数据类型应为"str"。')
     pip_path = get_pip_path(py_path, auto=True)
-    result = os.popen(_pipcmds['SET_MIRROR'].format(pip_path, url))
+    result = os.popen(_pipcmds['set_mirror'].format(pip_path, url))
     return result.read()
 
 
@@ -253,9 +252,9 @@ def get_mirror(py_path=''):
     获取pip当前镜像源地址。
     '''
     pip_path = get_pip_path(py_path, auto=True)
-    result = os.popen(_pipcmds['GET_MIRROR'].format(pip_path))
+    result = os.popen(_pipcmds['get_mirror'].format(pip_path))
     pattern = r"^global.index-url='(.+)'$"
-    if not (res := match(pattern, result.read())):
+    if not (res := re.match(pattern, result.read())):
         return ''
     return res.group(1)
 
@@ -274,7 +273,7 @@ def install(name, py_path='', *, mirror='', update=False, to_screen=False):
     url_cmd = '' if not mirror else f'-i {mirror} '
     pip_path = get_pip_path(py_path, auto=True)
     tips = f'正在安装{name}，请耐心等待'
-    command = _pipcmds['INSTALL'].format(pip_path, url_cmd, name, update_cmd)
+    command = _pipcmds['install'].format(pip_path, url_cmd, name, update_cmd)
     result = _start_cmd(command, tips, to_screen)
     return result
 
@@ -287,6 +286,25 @@ def uninstall(name, py_path='', *, to_screen=False):
         raise TypeError(f'包名参数的数据类型应为"str"。')
     pip_path = get_pip_path(py_path, auto=True)
     tips = f'正在卸载{name}，请稍等'
-    command = _pipcmds['UNINSTALL'].format(pip_path, name)
+    command = _pipcmds['uninstall'].format(pip_path, name)
     result = _start_cmd(command, tips, to_screen)
     return result
+
+
+def search(keywords, py_path='', to_screen=False):
+    if not isinstance(keywords, (tuple, list, set)):
+        raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
+    if not all(isinstance(s, str) for s in keywords):
+        raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
+    pip_path = get_pip_path(py_path, auto=True)
+    search_results = []
+    tips = '正在搜索，请稍后'
+    keywords = ' '.join(keywords)
+    command = _pipcmds['search'].format(pip_path, keywords)
+    result = _start_cmd(command, tips, to_screen)
+    result = result.split('\n')
+    pattern = re.compile(r'^(.+) \((.+)\)\s+\- (.+)$')
+    for search_result in result:
+        if res := pattern.match(search_result):
+            search_results.append(res.groups())
+    return search_results
