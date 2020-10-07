@@ -35,6 +35,7 @@ from .fastpip import (
     pkgs_info,
     cur_py_path,
     all_py_paths,
+    search,
 )
 
 __all__ = [
@@ -50,10 +51,11 @@ __all__ = [
     'pkgs_info',
     'cur_py_path',
     'all_py_paths',
+    'search',
 ]
 
 NAME = 'fastpip'
-VERSION = '0.0.4'
+VERSION = '0.0.5'
 AUTHOR = 'hrpzcf'
 EMAIL = 'hrpzcf@foxmail.com'
 WEBSITE = 'https://gitee.com/hrpzcf/fastpip'
