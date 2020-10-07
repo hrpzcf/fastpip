@@ -32,6 +32,11 @@ from time import sleep
 
 from .findpypath import all_py_paths, cur_py_path
 
+if not os.name == 'nt':
+    sys.stdout.write('程序运行于不受支持的系统，即将退出。')
+    sleep(2)
+    sys.exit(-1)
+
 _show_running_tips = True
 
 # 预设镜像源：
@@ -88,6 +93,7 @@ def _msg_wait(msg):
             sys.stdout.write(f'{msg}{dot*num}{" "*5}')
             num = 1 if num == 6 else num + 1
             sleep(0.5)
+        sys.stdout.write(f'\r{"  " * (len(msg)+6)}\r')
         sleep(0.1)
         _show_running_tips = True
 
@@ -114,8 +120,8 @@ def _execute_cmd(cmd, tips, no_output, no_tips):
     cmd_thread.start()
     cmd_thread.join()
     global _show_running_tips
-    _show_running_tips = False
-    sys.stdout.write(f'\r{"  " * (len(tips)+6)}\r')
+    if not no_tips:
+        _show_running_tips = False
     if not no_output:
         sys.stdout.write(execution_result)
     return execution_result
