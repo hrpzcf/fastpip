@@ -55,7 +55,7 @@ __all__ = [
 ]
 
 NAME = 'fastpip'
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 AUTHOR = 'hrpzcf'
 EMAIL = 'hrpzcf@foxmail.com'
 WEBSITE = 'https://gitee.com/hrpzcf/fastpip'
