@@ -32,7 +32,7 @@ from time import sleep
 
 from .findpypath import all_py_paths, cur_py_path
 
-_show_running_tip = True
+_show_running_tips = True
 
 # 预设镜像源：
 mirrors = {
@@ -77,19 +77,19 @@ class _PipInfo(object):
 
 def _msg_wait(msg):
     '''
-    打印等待提示信息。
+    打印等待中提示信息。
     '''
 
     def show_msg(msg):
-        global _show_running_tip
+        global _show_running_tips
         num, dot = 1, '.'
-        while _show_running_tip:
+        while _show_running_tips:
             sys.stdout.write(f'\r')
             sys.stdout.write(f'{msg}{dot*num}{" "*5}')
             num = 1 if num == 6 else num + 1
             sleep(0.5)
         sleep(0.1)
-        _show_running_tip = True
+        _show_running_tips = True
 
     tip_thread = Thread(target=show_msg, args=(msg,))
     # 在终端环境中进入Python交互模式，设置setDaemon(True)后主线程退出仍无法结束
@@ -99,29 +99,29 @@ def _msg_wait(msg):
     tip_thread.start()
 
 
-def _start_cmd(command, tips, to_screen):
-    '''
-    执行命令并返回输出结果。
-    '''
+def _execute_cmd(cmd, tips, no_output, no_tips):
+    '''执行命令，输出等待提示语、输出命令执行结果并返回。'''
 
-    def cmd_func(command):
-        nonlocal result
-        result = os.popen(command).read()
+    def execute(cmd):
+        '''执行命令并将命令输出赋值给外层函数result变量。'''
+        nonlocal execution_result
+        execution_result = os.popen(cmd).read()
 
-    _msg_wait(tips)
-    result = ''
-    cmd_thread = Thread(target=cmd_func, args=(command,))
+    if not no_tips:
+        _msg_wait(tips)
+    execution_result = ''
+    cmd_thread = Thread(target=execute, args=(cmd,))
     cmd_thread.start()
     cmd_thread.join()
-    global _show_running_tip
-    _show_running_tip = False
+    global _show_running_tips
+    _show_running_tips = False
     sys.stdout.write(f'\r{"  " * (len(tips)+6)}\r')
-    if to_screen:
-        sys.stdout.write(result)
-    return result
+    if not no_output:
+        sys.stdout.write(execution_result)
+    return execution_result
 
 
-def get_pip_path(py_path, *, auto):
+def get_pip_path(py_path, *, auto_search):
     '''
     根据参数py_path的Python路径获取pip可执行文件路径。
     如果Python路径为空字符串，则先查找系统环境变量PATH中的Python路径，找不到则
@@ -143,8 +143,8 @@ def get_pip_path(py_path, *, auto):
     if not isinstance(py_path, str):
         raise TypeError('Python路径参数数据类型应为"str"。')
     if not py_path:
-        if not auto:
-            raise Exception('没有提供Python目录路径且禁止自动选择(auto=False)。')
+        if not auto_search:
+            raise Exception('没有提供Python目录路径且禁止自动查找(auto_search=False)。')
         if not (py_path := cur_py_path()):
             if not (py_path := all_py_paths()):
                 raise FileNotFoundError('自动查找没有找到任何Python安装目录。')
@@ -154,32 +154,32 @@ def get_pip_path(py_path, *, auto):
 
 def pip_info(*, py_path=''):
     '''
-    获取该目录的pip版本信息（包括pip版本、pip路径、相应Python版本）。
+    获取该目录的pip版本信息。
     如果获取到pip版本信息，则返回一个PipInfo实例，可以通过访问实例的
-    pipver、path、pyver属性分别获取到pip版本号、pip所在目录、该pip所在的Python版本号；
+    pipver、path、pyver属性分别获取到pip版本号、pip目录路径、该pip所在的Python版本号；
     如果没有获取到信息，则返回'没有获取到 pip 版本信息。'字符串。
-    直接打印PipInfo实例则显示概览。
+    直接打印PipInfo实例则显示概览：pip_info(pip版本、pip路径、相应Python版本)。
     '''
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     result = os.popen(_pipcmds['info'].format(pip_path)).read()
     if not result:
-        return '没有获取到 pip 版本信息。'
+        return '没有获取到pip版本信息。'
     result = re.match('pip (.+) from (.+) \(python (.+)\)', result.strip())
     if result and len(res := result.groups()) == 3:
         return _PipInfo(*res)
     raise Exception('未期望的错误导致没有匹配到pip版本信息。')
 
 
-def pkgs_info(py_path='', *, to_screen=False):
+def pkgs_info(py_path='', *, no_output=True, no_tips=True):
     '''
     获取该Python目录下包含(第三方包名, 版本)元组的列表。
     没有获取到则返回空列表。
     '''
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     info_list = []
     tips = '正在获取(包名, 版本)列表'
     command = _pipcmds['list'].format(pip_path)
-    result = _start_cmd(command, tips, to_screen)
+    result = _execute_cmd(command, tips, no_output, no_tips)
     if not result:
         return info_list
     pkgs = result.strip().split('\n')[2:]
@@ -189,16 +189,16 @@ def pkgs_info(py_path='', *, to_screen=False):
     return info_list
 
 
-def pkgs_name(py_path='', *, to_screen=False):
+def pkgs_name(py_path='', *, no_output=True, no_tips=True):
     '''
     获取该Python目录下安装的第三方包名列表。
     没有获取到包名列表则返回空列表。
     '''
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     name_list = []
     tips = '正在获取包名列表'
     command = _pipcmds['list'].format(pip_path)
-    result = _start_cmd(command, tips, to_screen)
+    result = _execute_cmd(command, tips, no_output, no_tips)
     if not result:
         return name_list
     pkgs = result.strip().split('\n')[2:]
@@ -208,17 +208,17 @@ def pkgs_name(py_path='', *, to_screen=False):
     return name_list
 
 
-def outdated(py_path='', *, to_screen=False):
+def outdated(py_path='', *, no_output=True, no_tips=True):
     '''
     获取可更新的包列表，列表包含(包名, 目前版本, 最新版本, 安装包类型)元组。
     如果没有获取到或者没有可更新的包，返回空列表。
-    因为检查更新源为国外服务器，环境中已安装的包越多耗费时间越多，所以请耐心等待。
+    因为检查更新源为国外服务器，环境中已安装的包越多耗费时间越多，请耐心等待。
     '''
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     outdated_pkgs_info = []
     command = _pipcmds['outdated'].format(pip_path)
     tips = 'PIP正在检查更新，请耐心等待'
-    result = _start_cmd(command, tips, to_screen)
+    result = _execute_cmd(command, tips, no_output, no_tips)
     if not result:
         return outdated_pkgs_info
     result = result.strip().split('\n')[2:]
@@ -231,7 +231,7 @@ def update_pip(py_path='', url=mirrors['opentuna']):
     '''
     升级pip本身。
     '''
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     result = os.popen(_pipcmds['update_pip'].format(pip_path, url))
     return result.read()
 
@@ -242,7 +242,7 @@ def set_mirror(py_path='', url=mirrors['opentuna']):
     '''
     if not isinstance(url, str):
         raise TypeError('镜像源地址参数的数据类型应为"str"。')
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     result = os.popen(_pipcmds['set_mirror'].format(pip_path, url))
     return result.read()
 
@@ -251,7 +251,7 @@ def get_mirror(py_path=''):
     '''
     获取pip当前镜像源地址。
     '''
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     result = os.popen(_pipcmds['get_mirror'].format(pip_path))
     pattern = r"^global.index-url='(.+)'$"
     if not (res := re.match(pattern, result.read())):
@@ -259,7 +259,9 @@ def get_mirror(py_path=''):
     return res.group(1)
 
 
-def install(name, py_path='', *, mirror='', update=False, to_screen=False):
+def install(
+    name, py_path='', *, mirror='', update=False, no_output=True, no_tips=True
+):
     '''
     安装Python第三方库、包。
     包名name必须提供，其他参数可以省略，但除了name参数，其他要指定的参数需以关
@@ -271,37 +273,42 @@ def install(name, py_path='', *, mirror='', update=False, to_screen=False):
         raise TypeError('镜像源地址参数数据类型应为"str"。')
     update_cmd = '' if not update else ' -U'
     url_cmd = '' if not mirror else f'-i {mirror} '
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     tips = f'正在安装{name}，请耐心等待'
     command = _pipcmds['install'].format(pip_path, url_cmd, name, update_cmd)
-    result = _start_cmd(command, tips, to_screen)
+    result = _execute_cmd(command, tips, no_output, no_tips)
     return result
 
 
-def uninstall(name, py_path='', *, to_screen=False):
+def uninstall(name, py_path='', *, no_output=True, no_tips=True):
     '''
     卸载Python第三方库、包。
     '''
     if not isinstance(name, str):
         raise TypeError(f'包名参数的数据类型应为"str"。')
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     tips = f'正在卸载{name}，请稍等'
     command = _pipcmds['uninstall'].format(pip_path, name)
-    result = _start_cmd(command, tips, to_screen)
+    result = _execute_cmd(command, tips, no_output, no_tips)
     return result
 
 
-def search(keywords, py_path='', to_screen=False):
+def search(keywords, py_path='', no_output=True, no_tips=True):
+    '''
+    以关键字搜索包名。
+    参数keywords应为包含关键字(str)的元组、列表或集合。
+    返回包含(包名, 版本, 简短描述)元组的列表。
+    '''
     if not isinstance(keywords, (tuple, list, set)):
         raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
     if not all(isinstance(s, str) for s in keywords):
         raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
-    pip_path = get_pip_path(py_path, auto=True)
+    pip_path = get_pip_path(py_path, auto_search=True)
     search_results = []
     tips = '正在搜索，请稍后'
     keywords = ' '.join(keywords)
     command = _pipcmds['search'].format(pip_path, keywords)
-    result = _start_cmd(command, tips, to_screen)
+    result = _execute_cmd(command, tips, no_output, no_tips)
     result = result.split('\n')
     pattern = re.compile(r'^(.+) \((.+)\)\s+\- (.+)$')
     for search_result in result:
