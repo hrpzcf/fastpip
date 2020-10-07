@@ -103,6 +103,7 @@ def _msg_wait(msg):
     # 用了_show_running_tip全局变量来控制子线程退出。
     tip_thread.setDaemon(True)
     tip_thread.start()
+    return tip_thread
 
 
 def _execute_cmd(cmd, tips, no_output, no_tips):
@@ -114,7 +115,7 @@ def _execute_cmd(cmd, tips, no_output, no_tips):
         execution_result = os.popen(cmd).read()
 
     if not no_tips:
-        _msg_wait(tips)
+        tip_thread = _msg_wait(tips)
     execution_result = ''
     cmd_thread = Thread(target=execute, args=(cmd,))
     cmd_thread.start()
@@ -122,6 +123,7 @@ def _execute_cmd(cmd, tips, no_output, no_tips):
     global _show_running_tips
     if not no_tips:
         _show_running_tips = False
+        tip_thread.join()
     if not no_output:
         sys.stdout.write(execution_result)
     return execution_result
@@ -310,12 +312,12 @@ def search(keywords, py_path='', no_output=True, no_tips=True):
     if not all(isinstance(s, str) for s in keywords):
         raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
     pip_path = get_pip_path(py_path, auto_search=True)
-    search_results = []
-    tips = '正在搜索，请稍后'
     keywords = ' '.join(keywords)
+    tips = f'正在搜索{keywords}，请稍后'
     command = _pipcmds['search'].format(pip_path, keywords)
     result = _execute_cmd(command, tips, no_output, no_tips)
     result = result.split('\n')
+    search_results = []
     pattern = re.compile(r'^(.+) \((.+)\)\s+\- (.+)$')
     for search_result in result:
         if res := pattern.match(search_result):
