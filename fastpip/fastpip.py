@@ -37,7 +37,7 @@ if not os.name == 'nt':
     sleep(2)
     sys.exit(-1)
 
-_show_running_tips = True
+_SHOW_RUNNING_TIPS = True
 
 # 预设镜像源：
 mirrors = {
@@ -80,27 +80,23 @@ class _PipInfo(object):
     __repr__ = __str__
 
 
-def _msg_wait(msg):
+def _tips_and_wait(tips):
     '''
     打印等待中提示信息。
     '''
 
-    def _tips(msg):
-        global _show_running_tips
-        num, dot = 1, '.'
-        while _show_running_tips:
+    def _print_tips(tips):
+        global _SHOW_RUNNING_TIPS
+        num, dot = 0, '.'
+        while _SHOW_RUNNING_TIPS:
             sys.stdout.write('\r')
-            sys.stdout.write(f'{msg}{dot*num}{" "*5}')
-            num = 1 if num == 6 else num + 1
+            sys.stdout.write(f'{tips}{dot*num}{" "*3}')
+            num = 0 if num == 3 else num + 1
             sleep(0.5)
-        _show_running_tips = True
-        sys.stdout.write(f'\r{"  " * (len(msg)+6)}\r')
+        _SHOW_RUNNING_TIPS = True
+        sys.stdout.write(f'\r{"  " * (len(tips)+3)}\r')
 
-    tips_thread = Thread(target=_tips, args=(msg,))
-    # 在终端环境中进入Python交互模式，设置setDaemon(True)后主线程退出仍无法结束
-    # tip_thread子线程，可能是因为终端环境成了主线程所以tip_thread不会被结束？遂
-    # 用了_show_running_tip全局变量来控制子线程退出。
-    tips_thread.setDaemon(True)
+    tips_thread = Thread(target=_print_tips, args=(tips,))
     tips_thread.start()
     return tips_thread
 
@@ -108,11 +104,11 @@ def _msg_wait(msg):
 def _execute_cmd(cmd, tips, no_output, no_tips):
     '''执行命令，输出等待提示语、输出命令执行结果并返回。'''
     if not no_tips:
-        tips_thread = _msg_wait(tips)
+        tips_thread = _tips_and_wait(tips)
     execution_result = os.popen(cmd).read()
-    global _show_running_tips
+    global _SHOW_RUNNING_TIPS
     if not no_tips:
-        _show_running_tips = False
+        _SHOW_RUNNING_TIPS = False
         tips_thread.join()
     if not no_output:
         sys.stdout.write(execution_result)
@@ -215,7 +211,7 @@ def outdated(py_path='', *, no_output=True, no_tips=True):
     pip_path = get_pip_path(py_path, auto_search=True)
     outdated_pkgs_info = []
     command = _pipcmds['outdated'].format(pip_path)
-    tips = 'PIP正在检查更新，请耐心等待'
+    tips = '正在检查更新，请耐心等待'
     result = _execute_cmd(command, tips, no_output, no_tips)
     if not result:
         return outdated_pkgs_info
@@ -272,7 +268,7 @@ def install(
     update_cmd = '' if not update else ' -U'
     url_cmd = '' if not mirror else f'-i {mirror} '
     pip_path = get_pip_path(py_path, auto_search=True)
-    tips = f'正在安装{name}，请耐心等待'
+    tips = f'正在安装<{name}>，请耐心等待'
     command = _pipcmds['install'].format(pip_path, url_cmd, name, update_cmd)
     result = _execute_cmd(command, tips, no_output, no_tips)
     return result
@@ -314,7 +310,7 @@ def uninstall(name, py_path='', *, no_output=True, no_tips=True):
     if not isinstance(name, str):
         raise TypeError('包名参数的数据类型应为"str"。')
     pip_path = get_pip_path(py_path, auto_search=True)
-    tips = f'正在卸载{name}，请稍等'
+    tips = f'正在卸载<{name}>，请稍等'
     command = _pipcmds['uninstall'].format(pip_path, name)
     result = _execute_cmd(command, tips, no_output, no_tips)
     return result
