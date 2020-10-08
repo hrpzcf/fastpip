@@ -166,7 +166,7 @@ def pip_info(*, py_path=''):
 
 def pkgs_info(py_path='', *, no_output=True, no_tips=True):
     '''
-    获取该Python目录下包含(第三方包名, 版本)元组的列表。
+    获取该Python目录下已安装的包含(第三方包名, 版本)元组的列表。
     没有获取到则返回空列表。
     '''
     pip_path = get_pip_path(py_path, auto_search=True)
@@ -185,7 +185,7 @@ def pkgs_info(py_path='', *, no_output=True, no_tips=True):
 
 def pkgs_name(py_path='', *, no_output=True, no_tips=True):
     '''
-    获取该Python目录下安装的第三方包名列表。
+    获取该Python目录下已安装的第三方包名列表。
     没有获取到包名列表则返回空列表。
     '''
     pip_path = get_pip_path(py_path, auto_search=True)
@@ -204,7 +204,7 @@ def pkgs_name(py_path='', *, no_output=True, no_tips=True):
 
 def outdated(py_path='', *, no_output=True, no_tips=True):
     '''
-    获取可更新的包列表，列表包含(包名, 目前版本, 最新版本, 安装包类型)元组。
+    获取可更新的包列表，列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组。
     如果没有获取到或者没有可更新的包，返回空列表。
     因为检查更新源为国外服务器，环境中已安装的包越多耗费时间越多，请耐心等待。
     '''
@@ -257,9 +257,9 @@ def install(
     name, py_path='', *, mirror='', update=False, no_output=True, no_tips=True
 ):
     '''
-    安装Python第三方库、包。
-    包名name必须提供，其他参数可以省略，但除了name参数，其他要指定的参数需以关
-    键字参数方式指定。
+    安装Python第三方包。
+    包名name必须提供，其他参数可以省略，但除了name和py_path参数，其他要指定的参数需
+    以关键字参数方式指定。
     '''
     if not isinstance(name, str):
         raise TypeError('包名参数的数据类型应为"str"。')
@@ -283,7 +283,7 @@ def bat_install(
     no_output=True,
     no_tips=True,
 ):
-    '''批量安装第三方包。待完善。'''
+    '''批量安装第三方包。'''
     if not isinstance(pkg_names, (tuple, list, set)):
         raise TypeError('包名清单pkg_names数据类型应为"tuple"、"list"或"set"。')
     if not all(isinstance(s, str) for s in pkg_names):
@@ -305,7 +305,7 @@ def bat_install(
 
 def uninstall(name, py_path='', *, no_output=True, no_tips=True):
     '''
-    卸载Python第三方库、包。
+    卸载Python第三方包。
     '''
     if not isinstance(name, str):
         raise TypeError('包名参数的数据类型应为"str"。')
@@ -320,7 +320,7 @@ def search(keywords, py_path='', no_output=True, no_tips=True):
     '''
     以关键字搜索包名。
     参数keywords应为包含关键字(str)的元组、列表或集合。
-    返回包含(包名, 版本, 简短描述)元组的列表。
+    返回包含(包名, 最新版本, 简短描述)元组的列表。
     '''
     if not isinstance(keywords, (tuple, list, set)):
         raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
