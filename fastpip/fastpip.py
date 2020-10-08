@@ -85,45 +85,35 @@ def _msg_wait(msg):
     打印等待中提示信息。
     '''
 
-    def show_msg(msg):
+    def _tips(msg):
         global _show_running_tips
         num, dot = 1, '.'
         while _show_running_tips:
-            sys.stdout.write(f'\r')
+            sys.stdout.write('\r')
             sys.stdout.write(f'{msg}{dot*num}{" "*5}')
             num = 1 if num == 6 else num + 1
             sleep(0.5)
-        sys.stdout.write(f'\r{"  " * (len(msg)+6)}\r')
-        sleep(0.1)
         _show_running_tips = True
+        sys.stdout.write(f'\r{"  " * (len(msg)+6)}\r')
 
-    tip_thread = Thread(target=show_msg, args=(msg,))
+    tips_thread = Thread(target=_tips, args=(msg,))
     # 在终端环境中进入Python交互模式，设置setDaemon(True)后主线程退出仍无法结束
     # tip_thread子线程，可能是因为终端环境成了主线程所以tip_thread不会被结束？遂
     # 用了_show_running_tip全局变量来控制子线程退出。
-    tip_thread.setDaemon(True)
-    tip_thread.start()
-    return tip_thread
+    tips_thread.setDaemon(True)
+    tips_thread.start()
+    return tips_thread
 
 
 def _execute_cmd(cmd, tips, no_output, no_tips):
     '''执行命令，输出等待提示语、输出命令执行结果并返回。'''
-
-    def execute(cmd):
-        '''执行命令并将命令输出赋值给外层函数result变量。'''
-        nonlocal execution_result
-        execution_result = os.popen(cmd).read()
-
     if not no_tips:
-        tip_thread = _msg_wait(tips)
-    execution_result = ''
-    cmd_thread = Thread(target=execute, args=(cmd,))
-    cmd_thread.start()
-    cmd_thread.join()
+        tips_thread = _msg_wait(tips)
+    execution_result = os.popen(cmd).read()
     global _show_running_tips
     if not no_tips:
         _show_running_tips = False
-        tip_thread.join()
+        tips_thread.join()
     if not no_output:
         sys.stdout.write(execution_result)
     return execution_result
@@ -276,7 +266,7 @@ def install(
     键字参数方式指定。
     '''
     if not isinstance(name, str):
-        raise TypeError(f'包名参数的数据类型应为"str"。')
+        raise TypeError('包名参数的数据类型应为"str"。')
     if not isinstance(mirror, str):
         raise TypeError('镜像源地址参数数据类型应为"str"。')
     update_cmd = '' if not update else ' -U'
@@ -288,12 +278,41 @@ def install(
     return result
 
 
+def bat_install(
+    pkg_names,
+    py_path='',
+    *,
+    mirror='',
+    update=False,
+    no_output=True,
+    no_tips=True,
+):
+    '''批量安装第三方包。待完善。'''
+    if not isinstance(pkg_names, (tuple, list, set)):
+        raise TypeError('包名清单pkg_names数据类型应为"tuple"、"list"或"set"。')
+    if not all(isinstance(s, str) for s in pkg_names):
+        raise ValueError('包名清单pkg_names中包含的数据类型应为"str"。')
+    install_info = []
+    for pkg_name in pkg_names:
+        install_info.append(
+            install(
+                pkg_name,
+                py_path,
+                mirror=mirror,
+                update=update,
+                no_output=no_output,
+                no_tips=no_tips,
+            )
+        )
+    return install_info
+
+
 def uninstall(name, py_path='', *, no_output=True, no_tips=True):
     '''
     卸载Python第三方库、包。
     '''
     if not isinstance(name, str):
-        raise TypeError(f'包名参数的数据类型应为"str"。')
+        raise TypeError('包名参数的数据类型应为"str"。')
     pip_path = get_pip_path(py_path, auto_search=True)
     tips = f'正在卸载{name}，请稍等'
     command = _pipcmds['uninstall'].format(pip_path, name)

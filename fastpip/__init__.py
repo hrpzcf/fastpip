@@ -36,6 +36,7 @@ from .fastpip import (
     cur_py_path,
     all_py_paths,
     search,
+    bat_install,
 )
 
 __all__ = [
@@ -52,6 +53,7 @@ __all__ = [
     'cur_py_path',
     'all_py_paths',
     'search',
+    'bat_install',
 ]
 
 NAME = 'fastpip'
