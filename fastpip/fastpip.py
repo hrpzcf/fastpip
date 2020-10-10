@@ -33,9 +33,7 @@ from time import sleep
 from .findpypath import all_py_paths, cur_py_path
 
 if not os.name == 'nt':
-    sys.stdout.write('程序运行于不受支持的系统，即将退出。')
-    sleep(2)
-    sys.exit(-1)
+    raise Exception('运行于不受支持的操作系统。')
 
 _SHOW_RUNNING_TIPS = True
 
