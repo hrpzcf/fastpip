@@ -59,7 +59,7 @@ def cur_py_path():
     '''
     env_paths = py_env_paths()
     if not env_paths:
-        return
+        return ''
     return env_paths[0]
 
 
