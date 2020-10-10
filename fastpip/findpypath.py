@@ -5,7 +5,7 @@ import os
 import psutil
 
 
-def find_most_likely():
+def _possible_location():
     '''
     生成各磁盘上的常见的Python安装目录列表。
     '''
@@ -26,7 +26,7 @@ def find_most_likely():
     return most_likely_path
 
 
-def py_env_paths():
+def py_paths_env():
     '''
     系统环境变量PATH中的Python目录路径列表。
     '''
@@ -57,7 +57,7 @@ def cur_py_path():
     '''
     当前Python路径（系统环境变量PATH中第一个Python目录路径）。
     '''
-    env_paths = py_env_paths()
+    env_paths = py_paths_env()
     if not env_paths:
         return ''
     return env_paths[0]
@@ -69,14 +69,14 @@ def all_py_paths():
     如果在可能的安装目录中的子文件夹里找不到解释器，那就再深入一层目录，再找不到就算了，
     毕竟没那么多时间去全盘搜索。
     '''
-    exist_py_paths, deeper_paths = [], []
-    for most_likely in find_most_likely():
+    paths_py_exists, deeper_paths = [], []
+    for possible_dir in _possible_location():
         try:
-            for py_path in os.listdir(most_likely):
-                full_path = os.path.join(most_likely, py_path, '')
+            for py_path in os.listdir(possible_dir):
+                full_path = os.path.join(possible_dir, py_path, '')
                 if os.path.isdir(full_path):
                     if os.path.exists(os.path.join(full_path, 'python.exe')):
-                        exist_py_paths.append(full_path)
+                        paths_py_exists.append(full_path)
                     else:
                         deeper_paths.append(full_path)
         except Exception:
@@ -88,10 +88,10 @@ def all_py_paths():
                 if os.path.isdir(full_path) and os.path.exists(
                     os.path.join(full_path, 'python.exe')
                 ):
-                    exist_py_paths.append(full_path)
+                    paths_py_exists.append(full_path)
         except Exception:
             pass
-    for env_path in py_env_paths():
-        if env_path not in exist_py_paths:
-            exist_py_paths.append(env_path)
-    return exist_py_paths
+    for path_env in py_paths_env():
+        if path_env not in paths_py_exists:
+            paths_py_exists.append(path_env)
+    return paths_py_exists
