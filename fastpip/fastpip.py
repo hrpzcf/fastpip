@@ -73,7 +73,9 @@ class _PipInfo(object):
         self.pipver = pipver
 
     def __str__(self):
-        return f'pip_info(pipver={self.pipver}, path={self.path}, pyver={self.pyver})'
+        return 'pip_info(pipver={}, path={}, pyver={})'.format(
+            self.pipver, self.path, self.pyver
+        )
 
     __repr__ = __str__
 
@@ -88,11 +90,11 @@ def _tips_and_wait(tips):
         num, dot = 0, '.'
         while _SHOW_RUNNING_TIPS:
             sys.stdout.write('\r')
-            sys.stdout.write(f'{tips}{dot*num}{" "*3}')
+            sys.stdout.write('{}{}{}'.format(tips, dot * num, " " * 3))
             num = 0 if num == 3 else num + 1
             sleep(0.5)
         _SHOW_RUNNING_TIPS = True
-        sys.stdout.write(f'\r{"  " * (len(tips)+3)}\r')
+        sys.stdout.write('\r{}\r'.format("  " * (len(tips) + 3)))
 
     tips_thread = Thread(target=_print_tips, args=(tips,))
     tips_thread.start()
@@ -126,19 +128,24 @@ def get_pip_path(py_path, *, auto_search):
     def match_pip(pip_dir):
         try:
             for file in os.listdir(pip_dir):
-                if res := re.match(r'^pip.*\.exe$', file):
+                res = re.match(r'^pip.*\.exe$', file)
+                if res:
                     return os.path.join(pip_dir, res.group())
-            raise FileNotFoundError(f'Scripts目录({pip_dir})中没有找到pip可执行文件。')
+            raise FileNotFoundError(
+                'Scripts目录({})中没有找到pip可执行文件。'.format(pip_dir)
+            )
         except Exception:
-            raise PermissionError(f'目录({pip_dir})无法打开。')
+            raise PermissionError('目录({})无法打开。'.format(pip_dir))
 
     if not isinstance(py_path, str):
         raise TypeError('Python路径参数数据类型应为"str"。')
     if not py_path:
         if not auto_search:
             raise Exception('没有提供Python目录路径且禁止自动查找(auto_search=False)。')
-        if not (py_path := cur_py_path()):
-            if not (py_path := all_py_paths()):
+        py_path = cur_py_path()
+        if not py_path:
+            py_path = all_py_paths()
+            if not py_path:
                 raise FileNotFoundError('自动查找没有找到任何Python安装目录。')
             py_path = py_path[0]
     return match_pip(os.path.join(py_path, 'Scripts'))
@@ -157,8 +164,10 @@ def pip_info(*, py_path=''):
     if not result:
         return '没有获取到pip版本信息。'
     result = re.match('pip (.+) from (.+) \(python (.+)\)', result.strip())
-    if result and len(res := result.groups()) == 3:
-        return _PipInfo(*res)
+    if result:
+        res = result.groups()
+        if len(res) == 3:
+            return _PipInfo(*res)
     raise Exception('未期望的错误导致没有匹配到pip版本信息。')
 
 
@@ -246,9 +255,10 @@ def get_mirror(py_path=''):
     pip_path = get_pip_path(py_path, auto_search=True)
     result = os.popen(_pipcmds['get_mirror'].format(pip_path))
     pattern = r"^global.index-url='(.+)'$"
-    if not (res := re.match(pattern, result.read())):
+    match_res = re.match(pattern, result.read())
+    if not match_res:
         return ''
-    return res.group(1)
+    return match_res.group(1)
 
 
 def install(
@@ -264,9 +274,9 @@ def install(
     if not isinstance(mirror, str):
         raise TypeError('镜像源地址参数数据类型应为"str"。')
     update_cmd = '' if not update else ' -U'
-    url_cmd = '' if not mirror else f'-i {mirror} '
+    url_cmd = '' if not mirror else '-i {} '.format(mirror)
     pip_path = get_pip_path(py_path, auto_search=True)
-    tips = f'正在安装<{name}>，请耐心等待'
+    tips = '正在安装<{}>，请耐心等待'.format(name)
     command = _pipcmds['install'].format(pip_path, url_cmd, name, update_cmd)
     result = _execute_cmd(command, tips, no_output, no_tips)
     return result
@@ -308,7 +318,7 @@ def uninstall(name, py_path='', *, no_output=True, no_tips=True):
     if not isinstance(name, str):
         raise TypeError('包名参数的数据类型应为"str"。')
     pip_path = get_pip_path(py_path, auto_search=True)
-    tips = f'正在卸载<{name}>，请稍等'
+    tips = '正在卸载<{}>，请稍等'.format(name)
     command = _pipcmds['uninstall'].format(pip_path, name)
     result = _execute_cmd(command, tips, no_output, no_tips)
     return result
@@ -326,7 +336,7 @@ def search(keywords, py_path='', no_output=True, no_tips=True):
         raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
     pip_path = get_pip_path(py_path, auto_search=True)
     keywords = ' '.join(keywords)
-    tips = f'正在搜索{keywords}，请稍后'
+    tips = '正在搜索{}，请稍后'.format(keywords)
     command = _pipcmds['search'].format(pip_path, keywords)
     result = _execute_cmd(command, tips, no_output, no_tips)
     result = result.split('\n')
