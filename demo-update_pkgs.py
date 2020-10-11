@@ -5,7 +5,6 @@
 
 from fastpip import install, outdated
 
-print('可更新的包：')
 # 获取可更新列表
 # "无信息输出"参数no_output设置为False
 # "无正在运行提示"参数no_tips设为False
