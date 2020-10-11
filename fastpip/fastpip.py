@@ -33,7 +33,7 @@ from time import sleep
 from .findpypath import all_py_paths, cur_py_path
 
 if not os.name == 'nt':
-    raise Exception('运行于不受支持的操作系统。')
+    raise Exception('运行于不支持的操作系统。')
 
 _SHOW_RUNNING_TIPS = True
 
@@ -286,9 +286,9 @@ def bat_install(
         raise TypeError('包名清单pkg_names数据类型应为"tuple"、"list"或"set"。')
     if not all(isinstance(s, str) for s in pkg_names):
         raise ValueError('包名清单pkg_names中包含的数据类型应为"str"。')
-    install_info = []
+    install_output = []
     for pkg_name in pkg_names:
-        install_info.append(
+        install_output.append(
             install(
                 pkg_name,
                 py_path,
@@ -298,7 +298,7 @@ def bat_install(
                 no_tips=no_tips,
             )
         )
-    return install_info
+    return install_output
 
 
 def uninstall(name, py_path='', *, no_output=True, no_tips=True):
