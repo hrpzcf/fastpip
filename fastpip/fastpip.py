@@ -170,7 +170,7 @@ def pip_info(*, py_path=''):
         res = result.groups()
         if len(res) == 3:
             return _PipInfo(*res)
-    raise Exception('未期望的错误导致没有匹配到pip版本信息。')
+    return '未期望的错误导致没有匹配到pip版本信息。'
 
 
 def pkgs_info(*, py_path='', no_output=True, no_tips=True, timeout=None):
