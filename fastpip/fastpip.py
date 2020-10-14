@@ -292,35 +292,6 @@ def install(
     return name, result, retcode
 
 
-def bat_install(
-    names,
-    *,
-    py_path='',
-    mirror='',
-    update=False,
-    no_output=True,
-    no_tips=True,
-):
-    '''批量安装第三方包。'''
-    if not isinstance(names, (tuple, list, set)):
-        raise TypeError('包名清单pkg_names数据类型应为"tuple"、"list"或"set"。')
-    if not all(isinstance(s, str) for s in names):
-        raise ValueError('包名清单pkg_names中包含的数据类型应为"str"。')
-    install_output = []
-    for name in names:
-        install_output.append(
-            install(
-                name,
-                py_path=py_path,
-                mirror=mirror,
-                update=update,
-                no_output=no_output,
-                no_tips=no_tips,
-            )
-        )
-    return install_output
-
-
 def uninstall(name, *, py_path='', no_output=True, no_tips=True, timeout=None):
     '''卸载Python第三方包。'''
     if not isinstance(name, str):
