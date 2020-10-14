@@ -85,11 +85,11 @@ def _tips_and_wait(tips):
         global _SHOW_RUNNING_TIPS
         num, dot = 0, '.'
         while _SHOW_RUNNING_TIPS:
-            print('\r{}{}{}'.format(tips, dot * num, ' ' * 3), end='')
+            print('{}{}{}'.format(tips, dot * num, '   '), end='\r')
             num = 0 if num == 3 else num + 1
             sleep(0.5)
         _SHOW_RUNNING_TIPS = True
-        print('\r{}\r'.format("  " * (len(tips) + 3)), end='')
+        print('{}'.format("  " * (len(tips) + 3)), end='\r')
 
     tips_thread = Thread(target=_print_tips, args=(tips,))
     tips_thread.start()
