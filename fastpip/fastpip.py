@@ -163,7 +163,7 @@ def pip_info(*, py_path=''):
     result, retcode = _execute_cmd(
         cmds, tips='', no_output=True, no_tips=True, timeout=None
     )
-    if retcode != 0 or not result:
+    if retcode or not result:
         return '没有获取到pip版本信息。'
     result = re.match('pip (.+) from (.+) \(python (.+)\)', result.strip())
     if result:
@@ -181,7 +181,7 @@ def pkgs_info(*, py_path='', no_output=True, no_tips=True, timeout=None):
     info_list, tips = [], '正在获取(包名, 版本)列表'
     cmds = [pip_path(py_path, seek=True), *_pipcmds['list']]
     result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-    if retcode != 0 or not result:
+    if retcode or not result:
         return info_list
     pkgs = result.strip().split('\n')[2:]
     for pkg in pkgs:
@@ -198,7 +198,7 @@ def pkgs_name(*, py_path='', no_output=True, no_tips=True, timeout=None):
     name_list, tips = [], '正在获取包名列表'
     cmds = [pip_path(py_path, seek=True), *_pipcmds['list']]
     result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-    if retcode != 0 or not result:
+    if retcode or not result:
         return name_list
     pkgs = result.strip().split('\n')[2:]
     for pkg in pkgs:
@@ -216,7 +216,7 @@ def outdated(*, py_path='', no_output=True, no_tips=True, timeout=None):
     cmds = [pip_path(py_path, seek=True), *_pipcmds['outdated']]
     outdated_pkgs_info, tips = [], '正在检查更新'
     result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-    if retcode != 0 or not result:
+    if retcode or not result:
         return outdated_pkgs_info
     result = result.strip().split('\n')[2:]
     for pkg in result:
@@ -232,10 +232,7 @@ def update_pip(
     cmds = [pip_path(py_path, seek=True), *_pipcmds['update_pip']]
     if url:
         cmds.extend(('-i', url))
-    result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-    if retcode != 0 or not result:
-        return ''
-    return result
+    return _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
 
 
 def set_mirror(*, py_path='', url=mirrors['opentuna']):
@@ -245,7 +242,7 @@ def set_mirror(*, py_path='', url=mirrors['opentuna']):
     cmds = [pip_path(py_path, seek=True), *_pipcmds['set_mirror'], url]
     return _execute_cmd(
         cmds, tips='', no_output=True, no_tips=True, timeout=None
-    )
+    )[1]
 
 
 def get_mirror(*, py_path=''):
@@ -254,7 +251,7 @@ def get_mirror(*, py_path=''):
     result, retcode = _execute_cmd(
         cmds, '', no_output=True, no_tips=True, timeout=None
     )
-    if retcode != 0:
+    if retcode:
         return ''
     match_res = re.match(r"^global.index-url='(.+)'$", result)
     if not match_res:
@@ -282,14 +279,13 @@ def install(
     if not isinstance(mirror, str):
         raise TypeError('镜像源地址参数数据类型应为"str"。')
     tips = '正在安装{}'.format(name)
-    cmds = [pip_path(py_path, seek=True), *_pipcmds['install']]
-    cmds.append(name)
+    cmds = [pip_path(py_path, seek=True), *_pipcmds['install'], name]
     if mirror:
         cmds.extend(('-i', mirror))
     if update:
         cmds.append('-U')
-    result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-    return name, result, retcode
+    _, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
+    return name, retcode
 
 
 def uninstall(name, *, py_path='', no_output=True, no_tips=True, timeout=None):
@@ -298,8 +294,8 @@ def uninstall(name, *, py_path='', no_output=True, no_tips=True, timeout=None):
         raise TypeError('包名参数的数据类型应为"str"。')
     tips = '正在卸载{}'.format(name)
     cmds = [pip_path(py_path, seek=True), *_pipcmds['uninstall'], name]
-    result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-    return name, result, retcode
+    _, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
+    return name, retcode
 
 
 def search(
@@ -317,7 +313,7 @@ def search(
     search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
     cmds = [pip_path(py_path, seek=True), *_pipcmds['search'], *keywords]
     result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-    if retcode != 0:
+    if retcode:
         return search_results
     result = result.split('\n')
     pattern = re.compile(r'^(.+) \((.+)\)\s+\- (.+)$')
