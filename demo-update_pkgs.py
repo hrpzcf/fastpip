@@ -3,6 +3,8 @@
 # 导入全部函数（不推荐）
 # from .fastpip import *    # 包含国内镜像源字典mirrors
 
+import sys
+
 from fastpip import install, outdated
 
 # 获取可更新列表
@@ -18,11 +20,11 @@ outdated_pkgs = outdated(no_output=0, no_tips=0)
 # 如果可更新列表为空就退出
 if not outdated_pkgs:
     print('没有发现可以更新的包。')
-    exit(0)
+    sys.exit(0)
 
 # 询问是否安装所有可更新的包，回答不是y就退出
 if input('\n确认更新？y/n：').lower() != 'y':
-    exit(0)
+    sys.exit(0)
 
 # 可更新列表不为空则按可更新的包名循环安装
 for name, *_ in outdated_pkgs:
