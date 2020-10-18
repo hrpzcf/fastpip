@@ -8,7 +8,17 @@
 pip install -U fastpip
 ```
 
-安装最新开发版本（推荐）：
+
+
+从Gitee安装最新开发版本（推荐）：
+
+1.首先安装依赖模块psutil:
+
+```
+pip install psutil
+```
+
+2.再安装fastpip:
 
 ```
 pip install -U git+https://gitee.com/hrpzcf/fastpip@dev
