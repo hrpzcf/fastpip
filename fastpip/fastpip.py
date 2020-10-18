@@ -30,10 +30,11 @@ from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
 from threading import Thread
 from time import sleep
 
+from .errors import Pip未找到异常, 参数值异常, 参数数据类型异常, 目录查找异常, 适用平台异常
 from .findpypath import all_py_paths, cur_py_path
 
-if not os.name == 'nt':
-    raise Exception('运行于不支持的操作系统。')
+if os.name != 'nt':
+    raise 适用平台异常('运行于不支持的操作系统。')
 
 _SHOW_RUNNING_TIPS = True
 
@@ -105,7 +106,7 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     try:
         exec_result = exec_fd.communicate(timeout=timeout)
     except TimeoutExpired:
-        exec_result = '', 1
+        exec_result = '', -1
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
@@ -114,7 +115,7 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     return exec_result[0], exec_fd.returncode
 
 
-def pip_path(py_path, *, seek):
+def pip_path(py_path, *, seek=True):
     '''
     根据参数py_path的Python路径获取pip可执行文件路径。
     如果Python路径为空字符串，则先查找系统环境变量PATH中的Python路径，找不到则
@@ -127,26 +128,25 @@ def pip_path(py_path, *, seek):
 
     def match_pip(pip_dir):
         try:
-            for file in os.listdir(pip_dir):
-                res = re.match(r'^pip.*\.exe$', file)
-                if res:
-                    return os.path.join(pip_dir, res.group())
-            raise FileNotFoundError(
-                'Scripts目录({})中没有找到pip可执行文件。'.format(pip_dir)
-            )
+            dirs_and_files = os.listdir(pip_dir)
         except Exception:
-            raise PermissionError('目录({})不存在或无法打开。'.format(pip_dir))
+            raise 目录查找异常('目录{}不存在或无法打开。'.format(pip_dir))
+        for possible_file in dirs_and_files:
+            result = re.match(r'^pip.*\.exe$', possible_file)
+            if result:
+                return os.path.join(pip_dir, result.group())
+        raise Pip未找到异常('目录{}中没有找到pip可执行文件。'.format(pip_dir))
 
     if not isinstance(py_path, str):
-        raise TypeError('Python路径参数数据类型应为"str"。')
+        raise 参数数据类型异常('Python目录路径参数数据类型应为"str"。')
     if not py_path:
         if not seek:
-            raise Exception('没有提供Python目录路径且禁止自动查找(seek=False)。')
+            raise Pip未找到异常('没有提供有效Python目录路径且未允许自动查找。')
         py_path = cur_py_path()
         if not py_path:
             py_path = all_py_paths()
             if not py_path:
-                raise FileNotFoundError('自动查找没有找到任何Python安装目录。')
+                raise 目录查找异常('自动查找没有找到任何Python安装目录。')
             py_path = py_path[0]
     return match_pip(os.path.join(py_path, 'Scripts'))
 
@@ -227,7 +227,7 @@ def outdated(*, py_path='', no_output=True, no_tips=True, timeout=None):
 def update_pip(
     *, py_path='', url='', no_output=True, no_tips=True, timeout=None,
 ):
-    '''升级pip本身。'''
+    '''升级pip自己。'''
     tips = '正在升级pip'
     cmds = [pip_path(py_path, seek=True), *_pipcmds['update_pip']]
     if url:
@@ -238,7 +238,7 @@ def update_pip(
 def set_mirror(*, py_path='', url=mirrors['opentuna']):
     '''设置pip镜像源地址。'''
     if not isinstance(url, str):
-        raise TypeError('镜像源地址参数的数据类型应为"str"。')
+        raise 参数数据类型异常('镜像源地址参数的数据类型应为"str"。')
     cmds = [pip_path(py_path, seek=True), *_pipcmds['set_mirror'], url]
     return _execute_cmd(
         cmds, tips='', no_output=True, no_tips=True, timeout=None
@@ -275,9 +275,9 @@ def install(
     需以关键字参数方式指定。
     '''
     if not isinstance(name, str):
-        raise TypeError('包名参数的数据类型应为"str"。')
+        raise 参数数据类型异常('包名参数的数据类型应为"str"。')
     if not isinstance(mirror, str):
-        raise TypeError('镜像源地址参数数据类型应为"str"。')
+        raise 参数数据类型异常('镜像源地址参数数据类型应为"str"。')
     tips = '正在安装{}'.format(name)
     cmds = [pip_path(py_path, seek=True), *_pipcmds['install'], name]
     if mirror:
@@ -291,7 +291,7 @@ def install(
 def uninstall(name, *, py_path='', no_output=True, no_tips=True, timeout=None):
     '''卸载Python第三方包。'''
     if not isinstance(name, str):
-        raise TypeError('包名参数的数据类型应为"str"。')
+        raise 参数数据类型异常('包名参数的数据类型应为"str"。')
     tips = '正在卸载{}'.format(name)
     cmds = [pip_path(py_path, seek=True), *_pipcmds['uninstall'], name]
     _, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
@@ -307,9 +307,9 @@ def search(
     返回包含(包名, 最新版本, 简短描述)元组的列表。
     '''
     if not isinstance(keywords, (tuple, list, set)):
-        raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
+        raise 参数数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
     if not all(isinstance(s, str) for s in keywords):
-        raise TypeError('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
+        raise 参数数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
     search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
     cmds = [pip_path(py_path, seek=True), *_pipcmds['search'], *keywords]
     result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
