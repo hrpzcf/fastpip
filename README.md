@@ -8,11 +8,13 @@
 pip install -U fastpip
 ```
 
-安装最新开发版本：
+安装最新开发版本（推荐）：
 
 ```
 pip install -U git+https://gitee.com/hrpzcf/fastpip@dev
 ```
+
+fastpip 0.2.0版本与0.1.0及以下版本api不兼容，以下示例仅适用于0.2.0及以上版本，所以推荐安装最新开发版本。
 
 
 
@@ -20,7 +22,7 @@ pip install -U git+https://gitee.com/hrpzcf/fastpip@dev
 
 ------
 
-使用fastpip升级Python环境中的包示例：
+使用fastpip升级Python环境中的包示例（fastpip 0.2.0）：
 
 ```python
 # -*- coding: utf-8 -*-
