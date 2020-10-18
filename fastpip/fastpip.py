@@ -223,7 +223,7 @@ class PyEnv(object):
         False）。
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: int or float, 命令执行超时时长，单位为秒。
+        :参数 timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :返回值: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表
         或空列表。
         '''
@@ -270,7 +270,7 @@ class PyEnv(object):
         False）。
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: float, 命令执行超时时长，单位为秒。
+        :参数 timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :返回值: lsit[tuple[str, str, str, str]] or lsit[],
         包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
         '''
@@ -304,7 +304,7 @@ class PyEnv(object):
         False）。
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: float, 命令执行超时时长，单位为秒。
+        :参数 timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :返回值: int, 命令退出状态码，0表示正常结束，负数表示执行被中断，正数表示执行
         异常退出。
         '''
@@ -316,7 +316,12 @@ class PyEnv(object):
         return _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
 
     def set_mirror(self, *, mirror=mirrors['opentuna']):
-        '''设置pip镜像源地址。'''
+        '''
+        设置pip全局镜像源地址。
+        :参数 mirror: str, 镜像源地址，参数可省略。
+        :返回值: int, 命令退出状态码，0表示正常结束，负数表示执行被中断，正数表示执行
+        异常退出。
+        '''
         if not isinstance(mirror, str):
             raise 参数数据类型异常('镜像源地址参数的数据类型应为字符串。')
         cmds = [self.pip_path(seek=True), *_pipcmds['set_mirror'], mirror]
@@ -325,7 +330,10 @@ class PyEnv(object):
         )[1]
 
     def get_mirror(self):
-        '''获取pip当前镜像源地址。'''
+        '''
+        获取pip当前镜像源地址。
+        :返回值: str, 当前系统pip全局镜像源地址。
+        '''
         cmds = [self.pip_path(seek=True), *_pipcmds['get_mirror']]
         result, retcode = _execute_cmd(
             cmds, '', no_output=True, no_tips=True, timeout=None
@@ -349,8 +357,18 @@ class PyEnv(object):
     ):
         '''
         安装Python第三方包。
-        包名name必须提供，其他参数可以省略，但除了name和py_path参数，其他要指定的参数
-        需以关键字参数方式指定。
+        包名name必须提供，其他参数可以省略，但除了name参数，其他需要指定的参数需以关键
+        字参数方式指定。
+        :参数 name: str, 第三方包名。
+        :参数 mirror: str, 镜像源地址。
+        :参数 update: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式安
+        装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本）
+        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        False）。
+        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        False）。
+        :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
+        :返回值: tuple[str, int], 返回(包名, 退出状态码)元组，状态码不为0则表示安装失败。
         '''
         if not isinstance(name, str):
             raise 参数数据类型异常('包名参数的数据类型应为字符串。')
@@ -367,7 +385,16 @@ class PyEnv(object):
         return name, retcode
 
     def uninstall(self, name, *, no_output=True, no_tips=True, timeout=None):
-        '''卸载Python第三方包。'''
+        '''
+        卸载Python第三方包。
+        :参数 name: str, 第三方包名。
+        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        False）。
+        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        False）。
+        :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
+        :返回值: tuple[str, int], 返回(包名, 退出状态码)元组，状态码不为0则表示卸载失败。
+        '''
         if not isinstance(name, str):
             raise 参数数据类型异常('包名参数的数据类型应为"str"。')
         self._check_timeout(timeout)
@@ -382,7 +409,14 @@ class PyEnv(object):
         '''
         以关键字搜索包名。
         参数keywords应为包含关键字(str)的元组、列表或集合。
-        返回包含(包名, 最新版本, 简短描述)元组的列表。
+        返回包含(包名, 最新版本, 概述)元组的列表。
+        :参数 keywords: tuple or lsit or set, 关键字集合。
+        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        False）。
+        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        False）。
+        :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
+        :返回值: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
         '''
         if not isinstance(keywords, (tuple, list, set)):
             raise 参数数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
