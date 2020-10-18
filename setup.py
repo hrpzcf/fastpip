@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 from fastpip import NAME, VERSION, AUTHOR, EMAIL, WEBSITE
 
-description = '一个对pip进行简单封装的模块，可在代码中实现方便的pip命令操作。'
+description = '一个对pip命令进行简单封装的模块，可在代码中实现方便的pip命令操作。'
 long_description = description
 
 if os.path.exists('README.md'):
