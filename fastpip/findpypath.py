@@ -1,97 +1,98 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 
 import psutil
 
 
 def _possible_location():
-    '''
-    生成各磁盘上的常见的Python安装目录列表。
-    '''
-    disk_parts = [dp.device for dp in psutil.disk_partitions()]
+    '''生成各磁盘上的常见的Python安装目录列表。'''
+    most_possible_path = []
     common_dir = 'Program Files', 'Program Files (x86)'
-    most_likely_path = [
-        full_path
-        for dp in disk_parts
-        for cd in common_dir
-        if os.path.exists(full_path := os.path.join(dp, cd))
-    ]
-    most_likely_path.extend(disk_parts)
-    most_likely_path.append(os.path.expanduser('~'))
-    if os.path.exists(
-        full_path := os.path.join(os.getenv('LOCALAPPDATA'), 'Programs')
-    ):
-        most_likely_path.append(full_path)
-    return most_likely_path
+    disk_parts = [dp.device for dp in psutil.disk_partitions()]
+    for dp in disk_parts:
+        for cd in common_dir:
+            full_path = os.path.join(dp, cd)
+            if os.path.exists(full_path):
+                most_possible_path.append(full_path)
+    most_possible_path.extend(disk_parts)
+    most_possible_path.append(os.path.expanduser('~'))
+    full_path = os.path.join(os.getenv('LOCALAPPDATA'), 'Programs')
+    if os.path.exists(full_path):
+        most_possible_path.append(full_path)
+    return most_possible_path
 
 
-def py_paths_env():
+def _paths_in_PATH():
     '''
-    系统环境变量PATH中的Python目录路径列表。
+    查找系统环境变量PATH中的Python目录路径列表。
+    仅根据"目录中是否存在python.exe文件且大小不为0"进行简单查找。
     '''
-    environ_paths = os.environ['PATH'].split(';')
-    cur_py_paths, final_py_paths, exclude = [], [], []
-    for ukn_path in environ_paths:
-        if 'python' in ukn_path.lower() and os.path.exists(ukn_path):
-            cur_py_paths.append(os.path.join(ukn_path, ''))
-    for ind1, cur1 in enumerate(cur_py_paths):
-        cur_py_paths_cp = cur_py_paths[:]
-        cur_py_paths_cp.pop(ind1)
-        for cur2 in cur_py_paths_cp:
-            if cur1.lower() != cur2.lower() and cur1.lower().startswith(
-                cur2.lower()
-            ):
-                exclude.append(cur1)
-                cur1 = cur2
-        if cur1 not in final_py_paths and cur1 not in exclude:
-            final_py_paths.append(cur1)
-    for ind, shorter_py_path in enumerate(final_py_paths):
-        shorter_py_path = os.path.split(shorter_py_path.strip(os.sep))
-        if 'scripts' == shorter_py_path[-1].lower():
-            final_py_paths[ind] = shorter_py_path[0]
-    return final_py_paths
+    paths_found = []
+    PATH_paths = os.environ['PATH'].split(';')
+    for PATH_path in PATH_paths:
+        try:
+            PATH_path_files = os.listdir(PATH_path)
+        except Exception:
+            continue
+        PATH_path = os.path.join(PATH_path, '')
+        if (
+            'python.exe' in PATH_path_files
+            and PATH_path not in paths_found
+            and os.path.getsize(os.path.join(PATH_path, 'python.exe'))
+        ):
+            paths_found.append(PATH_path)
+    return paths_found
 
 
 def cur_py_path():
-    '''
-    当前Python路径（系统环境变量PATH中第一个Python目录路径）。
-    '''
-    env_paths = py_paths_env()
-    if not env_paths:
+    '''当前Python路径（系统环境变量PATH中第一个Python目录路径）。'''
+    PATH_paths = _paths_in_PATH()
+    if not PATH_paths:
         return ''
-    return env_paths[0]
+    return PATH_paths[0]
 
 
 def all_py_paths():
     '''
     返回存在Python解释器的目录。
-    如果在可能的安装目录中的子文件夹里找不到解释器，那就再深入一层目录，再找不到就算了，
-    毕竟没那么多时间去全盘搜索。
+    如果在可能的安装目录中的子文件夹里找不到解释器，那就再深入一层目录，到此为止。
     '''
-    paths_py_exists, deeper_paths = [], []
-    for possible_dir in _possible_location():
+    dirs_in_possible_location, deeper_location = [], []
+    paths_py_exists = _paths_in_PATH()
+    for path in _possible_location():
         try:
-            for py_path in os.listdir(possible_dir):
-                full_path = os.path.join(possible_dir, py_path, '')
-                if os.path.isdir(full_path):
-                    if os.path.exists(os.path.join(full_path, 'python.exe')):
-                        paths_py_exists.append(full_path)
-                    else:
-                        deeper_paths.append(full_path)
+            dirs_and_files = os.listdir(path)
         except Exception:
-            pass
-    for deeper_path in deeper_paths:
+            continue
+        for item in dirs_and_files:
+            possible_dir = os.path.join(path, item)
+            if os.path.isdir(possible_dir):
+                dirs_in_possible_location.append(possible_dir)
+    for possible_dir in dirs_in_possible_location:
         try:
-            for sub_deeper_path in os.listdir(deeper_path):
-                full_path = os.path.join(deeper_path, sub_deeper_path)
-                if os.path.isdir(full_path) and os.path.exists(
-                    os.path.join(full_path, 'python.exe')
-                ):
-                    paths_py_exists.append(full_path)
+            dirs_and_files = os.listdir(possible_dir)
         except Exception:
-            pass
-    for path_env in py_paths_env():
-        if path_env not in paths_py_exists:
-            paths_py_exists.append(path_env)
+            continue
+        possible_dir = os.path.join(possible_dir, '')
+        if 'python.exe' in dirs_and_files:
+            if possible_dir not in paths_py_exists:
+                paths_py_exists.append(possible_dir)
+        else:
+            for deeper in dirs_and_files:
+                path_deeper = os.path.join(possible_dir, deeper)
+                if os.path.isdir(path_deeper):
+                    deeper_location.append(path_deeper)
+    for deeper_path in deeper_location:
+        try:
+            dirs_and_files = os.listdir(deeper_path)
+        except Exception:
+            continue
+        deeper_path = os.path.join(deeper_path, '')
+        if (
+            'python.exe' in dirs_and_files
+            and deeper_path not in paths_py_exists
+        ):
+            paths_py_exists.append(deeper_path)
     return paths_py_exists
