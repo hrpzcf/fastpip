@@ -150,6 +150,14 @@ class PyEnv(object):
 
     path = property(get_path, set_path, del_path)
 
+    @staticmethod
+    def _check_timeout(timeout):
+        if not isinstance(timeout, (int, float)):
+            if timeout is None:
+                return True
+            raise 参数数据类型异常('参数timeout数据类型应为整数、浮点数或None。')
+        return True
+
     def pip_path(self, *, seek=True):
         '''
         根据path属性所指的Python路径获取pip可执行文件路径。
@@ -215,10 +223,11 @@ class PyEnv(object):
         False）。
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: float, 命令执行超时时长，单位为秒。
+        :参数 timeout: int or float, 命令执行超时时长，单位为秒。
         :返回值: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表
         或空列表。
         '''
+        self._check_timeout(timeout)
         info_list, tips = [], '正在获取(包名, 版本)列表'
         cmds = [self.pip_path(seek=True), *_pipcmds['list']]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
@@ -240,6 +249,7 @@ class PyEnv(object):
         :参数 timeout: float, 命令执行超时时长，单位为秒。
         :返回值: list[str...] or lsit[], 包含包名的列表或空列表。
         '''
+        self._check_timeout(timeout)
         name_list, tips = [], '正在获取包名列表'
         cmds = [self.pip_path(seek=True), *_pipcmds['list']]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
@@ -251,7 +261,7 @@ class PyEnv(object):
             name_list.append(pkg[0])
         return name_list
 
-    def outdated(self, *, no_output=True, no_tips=True, timeout=None):
+    def outdated(self, *, no_output=True, no_tips=True, timeout=30):
         '''
         获取可更新的包列表，列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组。
         如果没有获取到或者没有可更新的包，返回空列表。
@@ -264,14 +274,24 @@ class PyEnv(object):
         :返回值: lsit[tuple[str, str, str, str]] or lsit[],
         包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
         '''
+        self._check_timeout(timeout)
         cmds = [self.pip_path(seek=True), *_pipcmds['outdated']]
         outdated_pkgs_info, tips = [], '正在检查更新'
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
             return outdated_pkgs_info
-        result = result.strip().split('\n')[2:]
-        for pkg in result:
-            outdated_pkgs_info.append(tuple(s for s in pkg.split(' ') if s))
+        result = result.strip().split('\n')
+        pattern1 = r'^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$'
+        pattern2 = r'^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$'
+        for pkg_ver_info in result:
+            res = re.match(pattern1, pkg_ver_info,)
+            if res:
+                outdated_pkgs_info.append(res.groups())
+        if not outdated_pkgs_info:
+            for pkg_ver_info in result:
+                res = re.match(pattern2, pkg_ver_info,)
+                if res:
+                    outdated_pkgs_info.append(res.groups())
         return outdated_pkgs_info
 
     def update_pip(
@@ -288,6 +308,7 @@ class PyEnv(object):
         :返回值: int, 命令退出状态码，0表示正常结束，负数表示执行被中断，正数表示执行
         异常退出。
         '''
+        self._check_timeout(timeout)
         tips = '正在升级pip'
         cmds = [self.pip_path(seek=True), *_pipcmds['update_pip']]
         if mirror:
@@ -297,7 +318,7 @@ class PyEnv(object):
     def set_mirror(self, *, mirror=mirrors['opentuna']):
         '''设置pip镜像源地址。'''
         if not isinstance(mirror, str):
-            raise 参数数据类型异常('镜像源地址参数的数据类型应为"str"。')
+            raise 参数数据类型异常('镜像源地址参数的数据类型应为字符串。')
         cmds = [self.pip_path(seek=True), *_pipcmds['set_mirror'], mirror]
         return _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
@@ -332,9 +353,10 @@ class PyEnv(object):
         需以关键字参数方式指定。
         '''
         if not isinstance(name, str):
-            raise 参数数据类型异常('包名参数的数据类型应为"str"。')
+            raise 参数数据类型异常('包名参数的数据类型应为字符串。')
         if not isinstance(mirror, str):
-            raise 参数数据类型异常('镜像源地址参数数据类型应为"str"。')
+            raise 参数数据类型异常('镜像源地址参数数据类型应为字符串。')
+        self._check_timeout(timeout)
         tips = '正在安装{}'.format(name)
         cmds = [self.pip_path(seek=True), *_pipcmds['install'], name]
         if mirror:
@@ -348,6 +370,7 @@ class PyEnv(object):
         '''卸载Python第三方包。'''
         if not isinstance(name, str):
             raise 参数数据类型异常('包名参数的数据类型应为"str"。')
+        self._check_timeout(timeout)
         tips = '正在卸载{}'.format(name)
         cmds = [self.pip_path(seek=True), *_pipcmds['uninstall'], name]
         _, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
@@ -365,6 +388,7 @@ class PyEnv(object):
             raise 参数数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
         if not all(isinstance(s, str) for s in keywords):
             raise 参数数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
+        self._check_timeout(timeout)
         search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
         cmds = [self.pip_path(seek=True), *_pipcmds['search'], *keywords]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
