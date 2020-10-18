@@ -23,39 +23,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.'''
 
 from .errors import Pip未找到异常, 参数值异常, 参数数据类型异常, 目录查找异常, 适用平台异常
-
-from .fastpip import (
-    all_py_paths,
-    cur_py_path,
-    get_mirror,
-    install,
-    mirrors,
-    outdated,
-    pip_info,
-    pip_path,
-    pkgs_info,
-    pkgs_name,
-    search,
-    set_mirror,
-    uninstall,
-    update_pip,
-)
+from .fastpip import PyEnv, all_py_paths, cur_py_path, mirrors
 
 __all__ = [
+    'PyEnv',
     'all_py_paths',
     'cur_py_path',
-    'get_mirror',
-    'install',
     'mirrors',
-    'outdated',
-    'pip_info',
-    'pip_path',
-    'pkgs_info',
-    'pkgs_name',
-    'search',
-    'set_mirror',
-    'uninstall',
-    'update_pip',
     'Pip未找到异常',
     '参数值异常',
     '参数数据类型异常',
