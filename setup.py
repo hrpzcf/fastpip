@@ -26,7 +26,7 @@ setup(
     packages=find_packages(),
     platforms=['win32'],
     install_requires=['psutil>=5.7.2'],
-    python_requires='>=3.8',
+    python_requires='>=3.7',
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: MIT License',
