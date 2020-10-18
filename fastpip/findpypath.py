@@ -36,11 +36,15 @@ def _paths_in_PATH():
             PATH_path_files = os.listdir(PATH_path)
         except Exception:
             continue
+        try:
+            file_size = os.path.getsize(os.path.join(PATH_path, 'python.exe'))
+        except Exception:
+            continue
         PATH_path = os.path.join(PATH_path, '')
         if (
             'python.exe' in PATH_path_files
             and PATH_path not in paths_found
-            and os.path.getsize(os.path.join(PATH_path, 'python.exe'))
+            and file_size
         ):
             paths_found.append(PATH_path)
     return paths_found
