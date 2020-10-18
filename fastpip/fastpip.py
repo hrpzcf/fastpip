@@ -120,8 +120,8 @@ def pip_path(py_path, *, seek=True):
     根据参数py_path的Python路径获取pip可执行文件路径。
     如果传入参数py_path不是字符串类型，抛出<参数数据类型异常>。
     a).如果Python路径py_path为空字符串：1.如果参数seek为真，则优先查找系统环境变量
-    PATH中的Python路径，找不到则继续查找全部磁盘中常用的Python安装目录位置，再找不到
-    则抛出<目录查找异常>；2.如果参数seek为假，则直接抛出<目录查找异常>。
+    PATH中的Python路径，找不到则继续查找全部磁盘中常用的Python安装目录位置，再找不到则
+    抛出<目录查找异常>；2.如果参数seek为假，则直接抛出<目录查找异常>。
     b).如果Python目录中Scripts目录不存在、无法打开、Scripts目录中没有pip*.exe文件则
     抛出<Pip未找到异常>。
     :参数 py_path: str, Python目录路径(非pip目录路径)。
@@ -159,21 +159,23 @@ def pip_info(*, py_path=''):
     获取该目录的pip版本信息。
     如果获取到pip版本信息，则返回一个PipInfo实例，可以通过访问实例的
     pipver、path、pyver属性分别获取到pip版本号、pip目录路径、该pip所在的Python版本号；
-    如果没有获取到信息，则返回'没有获取到 pip 版本信息。'字符串。
+    如果没有获取到信息或获取到信息但未正确匹配到信息格式，则返回None。
     直接打印PipInfo实例则显示概览：pip_info(pip版本、pip路径、相应Python版本)。
+    :关键字参数 py_path: str, Python目录路径。
+    :返回值: 匹配到pip版本信息：_PipInfo实例；未获取到pip版本信息：返回None。
     '''
     cmds = [pip_path(py_path, seek=True), *_pipcmds['info']]
     result, retcode = _execute_cmd(
         cmds, tips='', no_output=True, no_tips=True, timeout=None
     )
     if retcode or not result:
-        return '没有获取到pip版本信息。'
+        return
     result = re.match('pip (.+) from (.+) \(python (.+)\)', result.strip())
     if result:
         res = result.groups()
         if len(res) == 3:
             return _PipInfo(*res)
-    return '未期望的错误导致没有匹配到pip版本信息。'
+    return None
 
 
 def pkgs_info(*, py_path='', no_output=True, no_tips=True, timeout=None):
