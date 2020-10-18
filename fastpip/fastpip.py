@@ -118,11 +118,14 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
 def pip_path(py_path, *, seek=True):
     '''
     根据参数py_path的Python路径获取pip可执行文件路径。
-    如果Python路径为空字符串，则先查找系统环境变量PATH中的Python路径，找不到则
-    继续查找全部磁盘中常用的Python安装目录，再找不到则抛出FileNotFoundError异常。
-    如果传入参数py_path不是字符串类型，抛出TypeError异常。
-    :参数 py_path: str, Python目录路径（非pip目录路径）。
-    :参数 seek: bool, 系统环境变量中没找到Python安装目录时是否搜索（全盘有限搜索）。
+    如果传入参数py_path不是字符串类型，抛出<参数数据类型异常>。
+    a).如果Python路径py_path为空字符串：1.如果参数seek为真，则优先查找系统环境变量
+    PATH中的Python路径，找不到则继续查找全部磁盘中常用的Python安装目录位置，再找不到
+    则抛出<目录查找异常>；2.如果参数seek为假，则直接抛出<目录查找异常>。
+    b).如果Python目录中Scripts目录不存在、无法打开、Scripts目录中没有pip*.exe文件则
+    抛出<Pip未找到异常>。
+    :参数 py_path: str, Python目录路径(非pip目录路径)。
+    :参数 seek: bool, 系统环境变量中没找到Python安装目录时是否自动搜索(有限搜索)。
     :返回值: str, 该Pyhton目录下的pip完整路径。
     '''
 
@@ -130,7 +133,7 @@ def pip_path(py_path, *, seek=True):
         try:
             dirs_and_files = os.listdir(pip_dir)
         except Exception:
-            raise 目录查找异常('目录{}不存在或无法打开。'.format(pip_dir))
+            raise Pip未找到异常('目录{}不存在或无法打开。'.format(pip_dir))
         for possible_file in dirs_and_files:
             result = re.match(r'^pip.*\.exe$', possible_file)
             if result:
@@ -141,7 +144,7 @@ def pip_path(py_path, *, seek=True):
         raise 参数数据类型异常('Python目录路径参数数据类型应为"str"。')
     if not py_path:
         if not seek:
-            raise Pip未找到异常('没有提供有效Python目录路径且未允许自动查找。')
+            raise 目录查找异常('没有提供有效Python目录路径且未允许自动查找。')
         py_path = cur_py_path()
         if not py_path:
             py_path = all_py_paths()
