@@ -23,7 +23,7 @@ a_py_env = PyEnv()
 # 调用操作对象的outdated方法获取可更新列表
 # 参数no_output控制是否在终端显示pip命令输出，这里设置为False表示输出
 # 参数no_tips控制是否在终端显示类似"正在..."的提示，这里设为False表示显示提示
-# 如果在GUI程序中使用fastpip请确保这两个参数都设置为True
+# 如果在GUI程序中使用fastpip请确保这两个参数都设置为True（这两个参数默认值都是True）
 # outdated返回值结构：
 # [
 # (包名, 已安装版本, 最新版本, 安装包类型),
