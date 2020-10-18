@@ -180,8 +180,12 @@ def pip_info(*, py_path=''):
 
 def pkgs_info(*, py_path='', no_output=True, no_tips=True, timeout=None):
     '''
-    获取该Python目录下已安装的包含(第三方包名, 版本)元组的列表。
-    没有获取到则返回空列表。
+    获取该Python目录下已安装的包列表，列表包含(包名, 版本)元组，没有获取到则返回空列表。
+    :参数 py_path: str, Python目录路径。
+    :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为False）。
+    :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为False）。
+    :参数 timeout: float, 命令执行超时时长，单位为秒。
+    :返回值: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表或空列表。
     '''
     info_list, tips = [], '正在获取(包名, 版本)列表'
     cmds = [pip_path(py_path, seek=True), *_pipcmds['list']]
@@ -197,8 +201,12 @@ def pkgs_info(*, py_path='', no_output=True, no_tips=True, timeout=None):
 
 def pkgs_name(*, py_path='', no_output=True, no_tips=True, timeout=None):
     '''
-    获取该Python目录下已安装的第三方包名列表。
-    没有获取到包名列表则返回空列表。
+    获取该Python目录下已安装的包名列表，没有获取到包名列表则返回空列表。
+    :参数 py_path: str, Python目录路径。
+    :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为False）。
+    :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为False）。
+    :参数 timeout: float, 命令执行超时时长，单位为秒。
+    :返回值: list[str...] or lsit[], 包含包名的列表或空列表。
     '''
     name_list, tips = [], '正在获取包名列表'
     cmds = [pip_path(py_path, seek=True), *_pipcmds['list']]
@@ -217,6 +225,12 @@ def outdated(*, py_path='', no_output=True, no_tips=True, timeout=None):
     获取可更新的包列表，列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组。
     如果没有获取到或者没有可更新的包，返回空列表。
     因为检查更新源为国外服务器，环境中已安装的包越多耗费时间越多，请耐心等待。
+    :参数 py_path: str, Python目录路径。
+    :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为False）。
+    :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为False）。
+    :参数 timeout: float, 命令执行超时时长，单位为秒。
+    :返回值: lsit[tuple[str, str, str, str]] or lsit[],
+    包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
     '''
     cmds = [pip_path(py_path, seek=True), *_pipcmds['outdated']]
     outdated_pkgs_info, tips = [], '正在检查更新'
@@ -232,7 +246,15 @@ def outdated(*, py_path='', no_output=True, no_tips=True, timeout=None):
 def update_pip(
     *, py_path='', url='', no_output=True, no_tips=True, timeout=None,
 ):
-    '''升级pip自己。'''
+    '''
+    升级pip自己。
+    :参数 py_path: str, Python目录路径。
+    :参数 url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
+    :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为False）。
+    :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为False）。
+    :参数 timeout: float, 命令执行超时时长，单位为秒。
+    :返回值: int, 命令退出状态码，0表示正常结束，负数表示执行被中断，正数表示执行异常退出。
+    '''
     tips = '正在升级pip'
     cmds = [pip_path(py_path, seek=True), *_pipcmds['update_pip']]
     if url:
