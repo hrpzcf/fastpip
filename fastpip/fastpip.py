@@ -123,8 +123,7 @@ def _fix_bad_code(string):
 
 class PyEnv(object):
     def __init__(self, path=''):
-        self._check_path(path)
-        self.__path = path
+        self.__path = self._check_path(path)
 
     @staticmethod
     def _check_path(path):
@@ -133,22 +132,11 @@ class PyEnv(object):
             raise 参数数据类型异常('参数path类型应为字符串')
         if not os.path.exists(path):
             if path == '':
-                return True
+                return path
             raise 目录查找异常('参数path所指目录路径不存在。')
         if not os.path.isdir(path):
             raise 目录查找异常('参数path所指路径不是一个文件夹。')
-        return True
-
-    def get_path(self):
-        return self.__path
-
-    def set_path(self, value):
-        pass
-
-    def del_path(self):
-        pass
-
-    path = property(get_path, set_path, del_path)
+        return path
 
     @staticmethod
     def _check_timeout(timeout):
@@ -181,16 +169,16 @@ class PyEnv(object):
                     return os.path.join(pip_dir, result.group())
             raise Pip未找到异常('目录{}中没有找到pip可执行文件。'.format(pip_dir))
 
-        if not self.path:
+        if not self.__path:
             if not seek:
                 raise 目录查找异常('没有提供有效Python目录路径且未允许自动查找。')
             self.__path = cur_py_path()
-            if not self.path:
+            if not self.__path:
                 py_path = all_py_paths()
                 if not py_path:
                     raise 目录查找异常('自动查找没有找到任何Python安装目录。')
                 self.__path = py_path[0]
-        return match_pip(os.path.join(self.path, 'Scripts'))
+        return match_pip(os.path.join(self.__path, 'Scripts'))
 
     def pip_info(self):
         '''
