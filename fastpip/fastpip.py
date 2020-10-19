@@ -122,6 +122,12 @@ def _fix_bad_code(string):
 
 
 class PyEnv(object):
+    '''
+    Python环境类，此类接受一个指向Python解释器所在目录的路径参数（字符串）。
+    此类实例的所有pip操作方法都将基于该路径参数所指的Python环境，不会对系统中其他
+    Python环境产生影响。
+    '''
+
     def __init__(self, path=''):
         self.__path = self._check_path(path)
 
@@ -143,7 +149,9 @@ class PyEnv(object):
         if not isinstance(timeout, (int, float)):
             if timeout is None:
                 return True
-            raise 参数数据类型异常('参数timeout数据类型应为整数、浮点数或None。')
+            raise 参数数据类型异常('参数timeout值应为None、整数或浮点数。')
+        if timeout < 1:
+            raise 参数值异常('超时参数timeout的值不能小于1。')
         return True
 
     def pip_path(self, *, seek=True):
