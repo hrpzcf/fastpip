@@ -11,7 +11,7 @@ class Pip未找到异常(Exception):
     pass
 
 
-class 参数数据类型异常(Exception):
+class 数据类型异常(Exception):
     pass
 
 

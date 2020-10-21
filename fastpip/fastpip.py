@@ -30,7 +30,7 @@ from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
 from threading import Thread
 from time import sleep
 
-from .errors import Pip未找到异常, 参数值异常, 参数数据类型异常, 目录查找异常, 适用平台异常
+from .errors import Pip未找到异常, 参数值异常, 数据类型异常, 目录查找异常, 适用平台异常
 from .findpypath import all_py_paths, cur_py_path
 
 if os.name != 'nt':
@@ -135,7 +135,7 @@ class PyEnv(object):
     def _check_path(path):
         '''检查初始化参数path是否是一个有效的路径。'''
         if not isinstance(path, str):
-            raise 参数数据类型异常('参数path类型应为字符串')
+            raise 数据类型异常('参数path类型应为字符串')
         if not os.path.exists(path):
             if path == '':
                 return path
@@ -149,7 +149,7 @@ class PyEnv(object):
         if not isinstance(timeout, (int, float)):
             if timeout is None:
                 return True
-            raise 参数数据类型异常('参数timeout值应为None、整数或浮点数。')
+            raise 数据类型异常('参数timeout值应为None、整数或浮点数。')
         if timeout < 1:
             raise 参数值异常('超时参数timeout的值不能小于1。')
         return True
@@ -319,7 +319,7 @@ class PyEnv(object):
         异常退出。
         '''
         if not isinstance(mirror, str):
-            raise 参数数据类型异常('镜像源地址参数的数据类型应为字符串。')
+            raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
         cmds = [self.pip_path(seek=True), *_pipcmds['set_mirror'], mirror]
         return _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
@@ -367,9 +367,9 @@ class PyEnv(object):
         :返回值: tuple[str, int], 返回(包名, 退出状态码)元组，状态码不为0则表示安装失败。
         '''
         if not isinstance(name, str):
-            raise 参数数据类型异常('包名参数的数据类型应为字符串。')
+            raise 数据类型异常('包名参数的数据类型应为字符串。')
         if not isinstance(mirror, str):
-            raise 参数数据类型异常('镜像源地址参数数据类型应为字符串。')
+            raise 数据类型异常('镜像源地址参数数据类型应为字符串。')
         self._check_timeout(timeout)
         tips = '正在安装{}'.format(name)
         cmds = [self.pip_path(seek=True), *_pipcmds['install'], name]
@@ -392,7 +392,7 @@ class PyEnv(object):
         :返回值: tuple[str, int], 返回(包名, 退出状态码)元组，状态码不为0则表示卸载失败。
         '''
         if not isinstance(name, str):
-            raise 参数数据类型异常('包名参数的数据类型应为"str"。')
+            raise 数据类型异常('包名参数的数据类型应为"str"。')
         self._check_timeout(timeout)
         tips = '正在卸载{}'.format(name)
         cmds = [self.pip_path(seek=True), *_pipcmds['uninstall'], name]
@@ -415,9 +415,9 @@ class PyEnv(object):
         :返回值: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
         '''
         if not isinstance(keywords, (tuple, list, set)):
-            raise 参数数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
+            raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
         if not all(isinstance(s, str) for s in keywords):
-            raise 参数数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
+            raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
         self._check_timeout(timeout)
         search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
         cmds = [self.pip_path(seek=True), *_pipcmds['search'], *keywords]
