@@ -154,6 +154,29 @@ class PyEnv(object):
             raise 参数值异常('超时参数timeout的值不能小于1。')
         return True
 
+    def py_info(self):
+        '''获取Python版本信息。'''
+        cur_dir_path = os.path.dirname(os.path.abspath(__file__))
+        result, retcode = _execute_cmd(
+            (
+                os.path.join(self.__path, 'python.exe'),
+                os.path.join(cur_dir_path, 'pyinfo.py'),
+            ),
+            '',
+            True,
+            True,
+            None,
+        )
+        ver_info = 'Python {} :: {} bit {}'
+        if retcode or not result:
+            return ver_info.format('0.0.0', '?', '?')
+        info = re.match(
+            r'(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit (\(.+\))', result
+        )
+        if not info:
+            return ver_info.format('0.0.0', '?', '?')
+        return ver_info.format(*info.groups())
+
     def pip_path(self, *, seek=True):
         '''
         根据path属性所指的Python路径获取pip可执行文件路径。
