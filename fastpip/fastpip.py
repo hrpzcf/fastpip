@@ -352,27 +352,25 @@ class PyEnv(object):
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
         :参数 timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
-        :返回值: int, 命令退出状态码，0表示正常结束，负数表示执行被中断，正数表示执行
-        异常退出。
+        :返回值: bool, 命令退出状态，True表示升级成功，False表示设置失败。
         '''
         self._check_timeout(timeout)
         tips = '正在升级pip'
         cmds = [self.pip_path(seek=True), *_pipcmds['update_pip']]
         if mirror:
             cmds.extend(('-i', mirror))
-        return _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
+        return not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
 
     def set_mirror(self, mirror=mirrors['opentuna']):
         '''
         设置pip全局镜像源地址。
         :参数 mirror: str, 镜像源地址，参数可省略。
-        :返回值: int, 命令退出状态码，0表示正常结束，负数表示执行被中断，正数表示执行
-        异常退出。
+        :返回值: bool, 退出状态，True表示设置成功，False表示设置失败。
         '''
         if not isinstance(mirror, str):
             raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
         cmds = [self.pip_path(seek=True), *_pipcmds['set_mirror'], mirror]
-        return _execute_cmd(
+        return not _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
         )[1]
 
@@ -424,7 +422,7 @@ class PyEnv(object):
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
         :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
-        :返回值: tuple[str, int], 返回(包名, 退出状态码)元组，状态码不为0则表示安装失败。
+        :返回值: tuple[str, bool], 返回(包名, 退出状态)元组，状态不为True则表示安装失败。
         '''
         if not isinstance(name, str):
             raise 数据类型异常('包名参数的数据类型应为字符串。')
@@ -437,8 +435,10 @@ class PyEnv(object):
             cmds.extend(('-i', mirror))
         if update:
             cmds.append('-U')
-        _, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-        return name, retcode
+        return (
+            name,
+            not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
+        )
 
     def uninstall(self, name, *, no_output=True, no_tips=True, timeout=None):
         '''
@@ -449,15 +449,17 @@ class PyEnv(object):
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
         :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
-        :返回值: tuple[str, int], 返回(包名, 退出状态码)元组，状态码不为0则表示卸载失败。
+        :返回值: tuple[str, bool], 返回(包名, 退出状态)元组，状态不为True则表示卸载失败。
         '''
         if not isinstance(name, str):
             raise 数据类型异常('包名参数的数据类型应为"str"。')
         self._check_timeout(timeout)
         tips = '正在卸载{}'.format(name)
         cmds = [self.pip_path(seek=True), *_pipcmds['uninstall'], name]
-        _, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-        return name, retcode
+        return (
+            name,
+            not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
+        )
 
     def search(
         self, keywords, *, no_output=True, no_tips=True, timeout=None,
