@@ -51,7 +51,7 @@ def _paths_in_PATH():
 
 
 def cur_py_path():
-    '''当前Python路径（系统环境变量PATH中第一个Python目录路径）。'''
+    '''默认Python目录路径（系统环境变量PATH中第一个Python目录路径）。'''
     PATH_paths = _paths_in_PATH()
     if not PATH_paths:
         return ''
