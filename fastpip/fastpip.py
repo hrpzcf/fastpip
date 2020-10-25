@@ -50,7 +50,7 @@ mirrors = {
     'netease': 'https://mirrors.163.com/pypi/simple/',  # 网易源
 }
 
-# pip 命令
+# pip 部分命令
 _pipcmds = {
     'info': ('-V',),
     'list': ('list',),
@@ -362,7 +362,7 @@ class PyEnv(object):
             cmds.extend(('-i', mirror))
         return _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
 
-    def set_mirror(self, *, mirror=mirrors['opentuna']):
+    def set_mirror(self, mirror=mirrors['opentuna']):
         '''
         设置pip全局镜像源地址。
         :参数 mirror: str, 镜像源地址，参数可省略。
