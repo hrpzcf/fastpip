@@ -22,7 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.'''
 
-from .errors import Pip未找到异常, 参数值异常, 数据类型异常, 目录查找异常, 适用平台异常
+from .errors import 参数值异常, 数据类型异常, 文件查找异常, 目录查找异常, 适用平台异常
 from .fastpip import PyEnv, all_py_paths, cur_py_path, mirrors
 
 __all__ = [
@@ -30,9 +30,9 @@ __all__ = [
     'all_py_paths',
     'cur_py_path',
     'mirrors',
-    'Pip未找到异常',
     '参数值异常',
     '数据类型异常',
+    '文件查找异常',
     '目录查找异常',
     '适用平台异常',
 ]

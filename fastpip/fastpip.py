@@ -31,7 +31,7 @@ from threading import Thread
 from time import sleep
 from warnings import warn
 
-from .errors import Pip未找到异常, 参数值异常, 数据类型异常, 目录查找异常, 适用平台异常
+from .errors import 文件查找异常, 参数值异常, 数据类型异常, 目录查找异常, 适用平台异常
 from .findpypath import all_py_paths, cur_py_path
 
 if os.name != 'nt':
@@ -184,8 +184,8 @@ class PyEnv(object):
         a).如果Python路径path属性为空字符串：1.如果参数seek为真，则优先查找系统环境
         变量PATH中的Python路径，找不到则继续查找全部磁盘中常用的Python安装目录位置，
         再找不到则抛出<目录查找异常>；2.如果参数seek为假，则直接抛出<目录查找异常>。
-        b).如果Python目录中Scripts目录不存在、无法打开、Scripts目录中没有pip*.exe文
-        件则抛出<Pip未找到异常>。
+        b).如果Python目录中Scripts目录不存在、无法打开则抛出<目录查找异常>，Scripts
+        目录中没有pip*.exe文件则抛出<文件查找异常>。
         :参数 seek: bool, 系统环境变量中没找到Python安装目录时是否自动搜索(有限搜索)。
         :返回值: str, 该Pyhton目录下的pip完整路径。
         '''
@@ -194,12 +194,12 @@ class PyEnv(object):
             try:
                 dirs_and_files = os.listdir(pip_dir)
             except Exception:
-                raise Pip未找到异常('目录{}不存在或无法打开。'.format(pip_dir))
+                raise 目录查找异常('目录{}不存在或无法打开。'.format(pip_dir))
             for possible_file in dirs_and_files:
                 result = re.match(r'^pip.*\.exe$', possible_file)
                 if result:
                     return os.path.join(pip_dir, result.group())
-            raise Pip未找到异常('目录{}中没有找到pip可执行文件。'.format(pip_dir))
+            raise 文件查找异常('目录{}中没有找到pip可执行文件。'.format(pip_dir))
 
         if not self.__path:
             if not seek:
