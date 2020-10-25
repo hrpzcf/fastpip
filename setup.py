@@ -8,8 +8,11 @@ description = '一个对pip命令行操作进行简单封装的模块，可在�
 long_description = description
 
 if os.path.exists('README.md'):
-    with open('README.md', 'r', encoding='utf-8') as mdfile:
-        long_description = mdfile.read()
+    try:
+        with open('README.md', 'r', encoding='utf-8') as mdfile:
+            long_description = mdfile.read()
+    except Exception:
+        pass
 
 setup(
     name=NAME,
@@ -24,7 +27,7 @@ setup(
     long_description_content_type='text/markdown',
     license='MIT License',
     packages=find_packages(),
-    platforms=['win32'],
+    platforms=['win32', 'win_amd64'],
     install_requires=['psutil>=5.7.2'],
     python_requires='>=3.7',
     classifiers=[
