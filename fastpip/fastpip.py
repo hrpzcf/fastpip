@@ -103,17 +103,17 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     global _SHOW_RUNNING_TIPS
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
-    exec_fd = Popen(cmds, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+    exec_f = Popen(cmds, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
     try:
-        exec_result = exec_fd.communicate(timeout=timeout)
+        exec_out = exec_f.communicate(timeout=timeout)
     except TimeoutExpired:
-        exec_result = '', -1
+        exec_out = '', -1
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
     if not no_output:
-        print(exec_result[0], end='')
-    return exec_result[0], exec_fd.returncode
+        print(exec_out[0], end='')
+    return exec_out[0], exec_f.returncode
 
 
 def _fix_bad_code(string):
@@ -235,6 +235,14 @@ class PyEnv(object):
                 return _PipInfo(*res)
         return None
 
+    @staticmethod
+    def _clean_info(string):
+        '''清理pip包名列表命令的无关输出。'''
+        result = re.search(r'Package\s+Version\n[-\s]+\n(.+)', string, re.S)
+        if not result:
+            return ''
+        return result.group(1).strip().split('\n')
+
     def pkgs_info(self, *, no_output=True, no_tips=True, timeout=None):
         '''
         获取该Python目录下已安装的包列表，列表包含(包名, 版本)元组，没有获取到则返回
@@ -253,8 +261,8 @@ class PyEnv(object):
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
             return info_list
-        pkgs = result.strip().split('\n')[2:]
-        for pkg in pkgs:
+        info = self._clean_info(result)
+        for pkg in info:
             pkg = pkg.split(' ')
             info_list.append((pkg[0], pkg[-1]))
         return info_list
@@ -286,8 +294,8 @@ class PyEnv(object):
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
             return name_list
-        pkgs = result.strip().split('\n')[2:]
-        for pkg in pkgs:
+        info = self._clean_info(result)
+        for pkg in info:
             pkg = pkg.split(' ')
             name_list.append(pkg[0])
         return name_list
