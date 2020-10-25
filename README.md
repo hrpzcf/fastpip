@@ -53,9 +53,9 @@ from fastpip import PyEnv
 # 实例化一个pip操作对象（Python环境）
 # 初始化参数原型是PyEnv(path)
 # 初始化参数path是一个指向Python解释器（python.exe）所在目录的路径
-# 例如 a_py_env = PyEnv(r'C:\Anaconda3\envs\py35')
+# 例如 target_env = PyEnv(r'C:\Anaconda3\envs\py35')
 # 初始化path为空字符串（即''）或省略，则自动查找Python目录，找不到则抛出异常
-a_py_env = PyEnv()
+target_env = PyEnv()
 
 # 调用操作对象的outdated方法获取可更新列表
 # 参数no_output控制是否在终端显示pip命令输出，这里设置为False表示输出
@@ -66,7 +66,7 @@ a_py_env = PyEnv()
 # (包名, 已安装版本, 最新版本, 安装包类型),
 # ...
 # ]
-outdated_pkgs = a_py_env.outdated(no_output=0, no_tips=0)
+outdated_pkgs = target_env.outdated(no_output=0, no_tips=0)
 
 # 如果可更新列表为空则退出
 if not outdated_pkgs:
@@ -79,8 +79,8 @@ if input('\n确认更新？y/n：').lower() != 'y':
 
 # 可更新列表不为空则按可更新的包名循环安装
 for name, *_ in outdated_pkgs:
-    # 调用操作对象的install方法进行安装，安装模式update（升级模式）参数设为True
-    a_py_env.install(name, update=1, no_tips=0)
+    # 调用操作对象的install方法进行安装，安装模式upgrade（升级模式）参数设为True
+    target_env.install(name, upgrade=1, no_tips=0)
 
 print('全部更新完成！')
 
