@@ -132,18 +132,31 @@ class PyEnv(object):
     def __init__(self, path=''):
         self.__path = self._check_path(path)
 
-    @staticmethod
-    def _check_path(path):
+    def __str__(self):
+        return '{} 位于 {}'.format(self.py_info(), self.__path)
+
+    def _find_path(self, seek):
+        if not seek:
+            raise 目录查找异常('没有提供有效Python目录路径且未允许自动查找。')
+        py_path = cur_py_path()
+        if not py_path:
+            py_path = all_py_paths()
+            if not py_path:
+                raise 目录查找异常('自动查找没有找到任何Python安装目录。')
+            py_path = py_path[0]
+        return py_path
+
+    def _check_path(self, path):
         '''检查初始化参数path是否是一个有效的路径。'''
         if not isinstance(path, str):
             raise 数据类型异常('参数path类型应为字符串')
         if not os.path.exists(path):
             if path == '':
-                return path
+                return self._find_path(seek=True)
             raise 目录查找异常('参数path所指目录路径不存在。')
         if not os.path.isdir(path):
             raise 目录查找异常('参数path所指路径不是一个文件夹。')
-        return path
+        return os.path.join(path, '')
 
     @staticmethod
     def _check_timeout(timeout):
@@ -168,14 +181,14 @@ class PyEnv(object):
             True,
             None,
         )
-        ver_info = 'Python {} :: {} bit {}'
+        ver_info = 'Python {} :: {} bit'
         if retcode or not result:
-            return ver_info.format('0.0.0', '?', '?')
+            return ver_info.format('0.0.0', '?')
         info = re.match(
-            r'(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit (\(.+\))', result
+            r'(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)', result
         )
         if not info:
-            return ver_info.format('0.0.0', '?', '?')
+            return ver_info.format('0.0.0', '?')
         return ver_info.format(*info.groups())
 
     def pip_path(self, *, seek=True):
@@ -202,14 +215,7 @@ class PyEnv(object):
             raise 文件查找异常('目录{}中没有找到pip可执行文件。'.format(pip_dir))
 
         if not self.__path:
-            if not seek:
-                raise 目录查找异常('没有提供有效Python目录路径且未允许自动查找。')
-            self.__path = cur_py_path()
-            if not self.__path:
-                py_path = all_py_paths()
-                if not py_path:
-                    raise 目录查找异常('自动查找没有找到任何Python安装目录。')
-                self.__path = py_path[0]
+            self.__path = self._find_path(seek=seek)
         return match_pip(os.path.join(self.__path, 'Scripts'))
 
     def pip_info(self):
