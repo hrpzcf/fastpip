@@ -270,7 +270,8 @@ class PyEnv(object):
     def pkgs_name(self, *, no_output=True, no_tips=True, timeout=None):
         '''旧方法，即将被移除。'''
         warn(
-            '\nPyEnv 类 pkgs_name 方法现已被 pkg_names 方法代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
+            '\nPyEnv 类 pkgs_name 方法现已被 pkg_names 方法'
+            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
             DeprecationWarning,
             stacklevel=2,
         )
@@ -338,7 +339,8 @@ class PyEnv(object):
     ):
         '''旧方法，即将被移除。'''
         warn(
-            '\nPyEnv 类 update_pip 方法现已被 upgrade_pip 方法代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
+            '\nPyEnv 类 update_pip 方法现已被 upgrade_pip 方法'
+            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
             DeprecationWarning,
             stacklevel=2,
         )
@@ -385,7 +387,8 @@ class PyEnv(object):
     def get_mirror(self):
         '''旧方法，即将被移除。'''
         warn(
-            '\nPyEnv 类 get_mirror 方法现已被 show_mirror 方法代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
+            '\nPyEnv 类 get_mirror 方法现已被 show_mirror 方法'
+            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
             DeprecationWarning,
             stacklevel=2,
         )
@@ -413,6 +416,7 @@ class PyEnv(object):
         *,
         mirror='',
         update=False,
+        upgrade=False,
         no_output=True,
         no_tips=True,
         timeout=None,
@@ -423,7 +427,7 @@ class PyEnv(object):
         字参数方式指定。
         :参数 name: str, 第三方包名。
         :参数 mirror: str, 镜像源地址。
-        :参数 update: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式安
+        :参数 upgrade: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式安
         装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本）
         :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
@@ -441,7 +445,15 @@ class PyEnv(object):
         cmds = [self.pip_path(seek=True), *_pipcmds['install'], name]
         if mirror:
             cmds.extend(('-i', mirror))
-        if update:
+        if upgrade or update:
+            # update 参数即将弃用提醒
+            if update:
+                warn(
+                    '\nPyEnv类install方法 update 参数已由 upgrade '
+                    '参数代替并即将在 0.3.0 版本弃用，请及时更新您的源代码。',
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             cmds.append('-U')
         return (
             name,
