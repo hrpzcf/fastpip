@@ -29,6 +29,7 @@ import re
 from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
 from threading import Thread
 from time import sleep
+from warnings import warn
 
 from .errors import Pip未找到异常, 参数值异常, 数据类型异常, 目录查找异常, 适用平台异常
 from .findpypath import all_py_paths, cur_py_path
@@ -259,6 +260,17 @@ class PyEnv(object):
         return info_list
 
     def pkgs_name(self, *, no_output=True, no_tips=True, timeout=None):
+        '''旧方法，即将被移除。'''
+        warn(
+            '\nPyEnv 类 pkgs_name 方法现已被 pkg_names 方法代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.pkg_names(
+            no_output=no_output, no_tips=no_tips, timeout=timeout
+        )
+
+    def pkg_names(self, *, no_output=True, no_tips=True, timeout=None):
         '''
         获取该Python目录下已安装的包名列表，没有获取到包名列表则返回空列表。
         :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
@@ -316,6 +328,22 @@ class PyEnv(object):
     def update_pip(
         self, *, mirror='', no_output=True, no_tips=True, timeout=None,
     ):
+        '''旧方法，即将被移除。'''
+        warn(
+            '\nPyEnv 类 update_pip 方法现已被 upgrade_pip 方法代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.upgrade_pip(
+            mirror=mirror,
+            no_output=no_output,
+            no_tips=no_tips,
+            timeout=timeout,
+        )
+
+    def upgrade_pip(
+        self, *, mirror='', no_output=True, no_tips=True, timeout=None,
+    ):
         '''
         升级pip自己。
         :参数 mirror: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
@@ -349,8 +377,17 @@ class PyEnv(object):
         )[1]
 
     def get_mirror(self):
+        '''旧方法，即将被移除。'''
+        warn(
+            '\nPyEnv 类 get_mirror 方法现已被 show_mirror 方法代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.show_mirror()
+
+    def show_mirror(self):
         '''
-        获取pip当前镜像源地址。
+        显示当前pip全局镜像源地址。
         :返回值: str, 当前系统pip全局镜像源地址。
         '''
         cmds = [self.pip_path(seek=True), *_pipcmds['get_mirror']]
