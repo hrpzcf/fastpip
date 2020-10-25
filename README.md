@@ -32,7 +32,7 @@ fastpip 0.2.0版本与0.1.0及以下版本api不兼容，以下示例仅适用�
 
 ------
 
-使用fastpip升级Python环境中的包示例（fastpip 0.2.0）：
+使用fastpip升级Python环境中的包示例（fastpip 0.2.0 或更新版本）：
 
 ```python
 # -*- coding: utf-8 -*-
