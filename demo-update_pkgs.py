@@ -42,7 +42,7 @@ if input('\n确认更新？y/n：').lower() != 'y':
 
 # 可更新列表不为空则按可更新的包名循环安装
 for name, *_ in outdated_pkgs:
-    # 调用操作对象的install方法进行安装，安装模式update（升级模式）参数设为True
-    a_py_env.install(name, update=1, no_tips=0)
+    # 调用操作对象的install方法进行安装，安装模式upgrade（升级模式）参数设为True
+    a_py_env.install(name, upgrade=1, no_tips=0)
 
 print('全部更新完成！')
