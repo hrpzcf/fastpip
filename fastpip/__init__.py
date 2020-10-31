@@ -23,13 +23,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.'''
 
 from .errors import 参数值异常, 数据类型异常, 文件查找异常, 目录查找异常, 适用平台异常
-from .fastpip import PyEnv, all_py_paths, cur_py_path, mirrors
+from .fastpip import PyEnv, all_py_paths, cur_py_path, index_urls
 
 __all__ = [
     'PyEnv',
     'all_py_paths',
     'cur_py_path',
-    'mirrors',
+    'index_urls',
     '参数值异常',
     '数据类型异常',
     '文件查找异常',

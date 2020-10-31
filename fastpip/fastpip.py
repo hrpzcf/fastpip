@@ -40,7 +40,7 @@ if os.name != 'nt':
 _SHOW_RUNNING_TIPS = True
 
 # 预设镜像源：
-mirrors = {
+index_urls = {
     'opentuna': 'https://opentuna.cn/pypi/web/simple',  # 清华源
     'tsinghua': 'https://pypi.tuna.tsinghua.edu.cn/simple',  # 清华源
     'tencent': 'https://mirrors.cloud.tencent.com/pypi/simple',  # 腾讯源
@@ -55,9 +55,9 @@ _pipcmds = {
     'info': ('-V',),
     'list': ('list',),
     'outdated': ('list', '--outdated'),
-    'update_pip': ('install', 'pip', '-U'),
-    'set_mirror': ('config', 'set', 'global.index-url'),
-    'get_mirror': ('config', 'list'),
+    'pip-upgrade': ('install', 'pip', '-U'),
+    'set_index': ('config', 'set', 'global.index-url'),
+    'get_index': ('config', 'list'),
     'install': ('install',),
     'uninstall': ('uninstall', '-y'),
     'search': ('search',),
@@ -127,6 +127,8 @@ class PyEnv(object):
     Python环境类，此类接受一个指向Python解释器所在目录的路径参数（字符串）。
     此类实例的所有pip操作方法都将基于该路径参数所指的Python环境，不会对系统中其他
     Python环境产生影响。
+    PyEnv无路径参数实例化时，默认使用cur_py_path函数自动选取Python目录路径，您可以
+    调用cur_py_path函数获取该Python目录路径用以确认当前操作的是哪个Python环境。
     '''
 
     def __init__(self, path=''):
@@ -149,11 +151,11 @@ class PyEnv(object):
     def _check_path(self, path):
         '''检查初始化参数path是否是一个有效的路径。'''
         if not isinstance(path, str):
-            raise 数据类型异常('参数path类型应为字符串')
+            raise 数据类型异常('参数path类型应为字符串。')
         if not os.path.exists(path):
             if path == '':
-                return self._find_path(seek=True)
-            raise 目录查找异常('参数path所指目录路径不存在。')
+                return self._find_path(True)
+            raise 目录查找异常('参数path所指路径不存在。')
         if not os.path.isdir(path):
             raise 目录查找异常('参数path所指路径不是一个文件夹。')
         return os.path.join(path, '')
@@ -191,32 +193,27 @@ class PyEnv(object):
             return ver_info.format('0.0.0', '?')
         return ver_info.format(*info.groups())
 
-    def pip_path(self, *, seek=True):
+    def pip_path(self):
         '''
-        根据path属性所指的Python路径获取pip可执行文件路径。
-        a).如果Python路径path属性为空字符串：1.如果参数seek为真，则优先查找系统环境
-        变量PATH中的Python路径，找不到则继续查找全部磁盘中常用的Python安装目录位置，
-        再找不到则抛出<目录查找异常>；2.如果参数seek为假，则直接抛出<目录查找异常>。
-        b).如果Python目录中Scripts目录不存在、无法打开则抛出<目录查找异常>，Scripts
-        目录中没有pip*.exe文件则抛出<文件查找异常>。
-        :参数 seek: bool, 系统环境变量中没找到Python安装目录时是否自动搜索(有限搜索)。
-        :返回值: str, 该Pyhton目录下的pip完整路径。
+        根据__path属性所指的Python安装目录获取pip可执行文件路径。
+        如果Scripts目录不存在或无法打开则抛出"目录查找异常"。
+        如果在Scripts目录中没有找到pip可执行文件则抛出"文件查找异常"。
+        :return: str, 该PyEnv实例的pip可执行文件的完整路径。
         '''
-
-        def match_pip(pip_dir):
-            try:
-                dirs_and_files = os.listdir(pip_dir)
-            except Exception:
-                raise 目录查找异常('目录{}不存在或无法打开。'.format(pip_dir))
-            for possible_file in dirs_and_files:
-                result = re.match(r'^pip.*\.exe$', possible_file)
-                if result:
-                    return os.path.join(pip_dir, result.group())
-            raise 文件查找异常('目录{}中没有找到pip可执行文件。'.format(pip_dir))
-
         if not self.__path:
-            self.__path = self._find_path(seek=seek)
-        return match_pip(os.path.join(self.__path, 'Scripts'))
+            raise FileNotFoundError('本PyEnv实例Python安装目录信息丢失。')
+        dir_pip_exists = os.path.join(self.__path, 'Scripts')
+        try:
+            dirs_and_files = os.listdir(dir_pip_exists)
+        except Exception:
+            raise 目录查找异常('目录{}不存在或无法打开。'.format(dir_pip_exists))
+        for dir_or_file in dirs_and_files:
+            if os.path.isdir(os.path.join(dir_pip_exists, dir_or_file)):
+                continue
+            result = re.match(r'^pip.*\.exe$', dir_or_file)
+            if result:
+                return os.path.join(dir_pip_exists, result.group())
+        raise 文件查找异常('目录{}中没有找到pip可执行文件。'.format(dir_pip_exists))
 
     def pip_info(self):
         '''
@@ -228,7 +225,7 @@ class PyEnv(object):
         直接打印PipInfo实例则显示概览：pip_info(pip版本、pip路径、相应Python版本)。
         :返回值: 匹配到pip版本信息：_PipInfo实例；未获取到pip版本信息：返回None。
         '''
-        cmds = [self.pip_path(seek=True), *_pipcmds['info']]
+        cmds = [self.pip_path(), *_pipcmds['info']]
         result, retcode = _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
         )
@@ -263,7 +260,7 @@ class PyEnv(object):
         '''
         self._check_timeout(timeout)
         info_list, tips = [], '正在获取(包名, 版本)列表'
-        cmds = [self.pip_path(seek=True), *_pipcmds['list']]
+        cmds = [self.pip_path(), *_pipcmds['list']]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
             return info_list
@@ -297,7 +294,7 @@ class PyEnv(object):
         '''
         self._check_timeout(timeout)
         name_list, tips = [], '正在获取包名列表'
-        cmds = [self.pip_path(seek=True), *_pipcmds['list']]
+        cmds = [self.pip_path(), *_pipcmds['list']]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
             return name_list
@@ -321,7 +318,7 @@ class PyEnv(object):
         包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
         '''
         self._check_timeout(timeout)
-        cmds = [self.pip_path(seek=True), *_pipcmds['outdated']]
+        cmds = [self.pip_path(), *_pipcmds['outdated']]
         outdated_pkgs_info, tips = [], '正在检查更新'
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
@@ -341,7 +338,7 @@ class PyEnv(object):
         return outdated_pkgs_info
 
     def update_pip(
-        self, *, mirror='', no_output=True, no_tips=True, timeout=None,
+        self, *, index_url='', no_output=True, no_tips=True, timeout=None,
     ):
         '''旧方法，即将被移除。'''
         warn(
@@ -351,18 +348,18 @@ class PyEnv(object):
             stacklevel=2,
         )
         return self.upgrade_pip(
-            mirror=mirror,
+            index_url=index_url,
             no_output=no_output,
             no_tips=no_tips,
             timeout=timeout,
         )
 
     def upgrade_pip(
-        self, *, mirror='', no_output=True, no_tips=True, timeout=None,
+        self, *, index_url='', no_output=True, no_tips=True, timeout=None,
     ):
         '''
         升级pip自己。
-        :参数 mirror: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
+        :参数 index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
         :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
         :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
@@ -372,40 +369,50 @@ class PyEnv(object):
         '''
         self._check_timeout(timeout)
         tips = '正在升级pip'
-        cmds = [self.pip_path(seek=True), *_pipcmds['update_pip']]
-        if mirror:
-            cmds.extend(('-i', mirror))
+        cmds = [self.pip_path(), *_pipcmds['pip-upgrade']]
+        if index_url:
+            cmds.extend(('-i', index_url))
         return not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
 
-    def set_mirror(self, mirror=mirrors['opentuna']):
-        '''
-        设置pip全局镜像源地址。
-        :参数 mirror: str, 镜像源地址，参数可省略。
-        :返回值: bool, 退出状态，True表示设置成功，False表示设置失败。
-        '''
-        if not isinstance(mirror, str):
-            raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
-        cmds = [self.pip_path(seek=True), *_pipcmds['set_mirror'], mirror]
-        return not _execute_cmd(
-            cmds, tips='', no_output=True, no_tips=True, timeout=None
-        )[1]
-
-    def get_mirror(self):
+    def set_mirror(self, index_url=index_urls['opentuna']):
         '''旧方法，即将被移除。'''
         warn(
-            '\nPyEnv 类 get_mirror 方法现已被 show_mirror 方法'
+            '\nPyEnv 类 set_mirror 方法现已被 set_global_index 方法'
             '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.show_mirror()
+        return self.set_global_index(index_url)
+
+    def set_global_index(self, index_url=index_urls['opentuna']):
+        '''
+        设置pip全局镜像源地址。
+        :参数 index_url: str, 镜像源地址，参数可省略。
+        :返回值: bool, 退出状态，True表示设置成功，False表示设置失败。
+        '''
+        if not isinstance(index_url, str):
+            raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
+        cmds = [self.pip_path(), *_pipcmds['set_index'], index_url]
+        return not _execute_cmd(
+            cmds, tips='', no_output=True, no_tips=True, timeout=None
+        )[1]
 
     def show_mirror(self):
+        '''旧方法，即将被移除。'''
+        warn(
+            '\nPyEnv 类 show_mirror 方法现已被 get_global_index 方法'
+            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_global_index()
+
+    def get_global_index(self):
         '''
         显示当前pip全局镜像源地址。
         :返回值: str, 当前系统pip全局镜像源地址。
         '''
-        cmds = [self.pip_path(seek=True), *_pipcmds['get_mirror']]
+        cmds = [self.pip_path(), *_pipcmds['get_index']]
         result, retcode = _execute_cmd(
             cmds, '', no_output=True, no_tips=True, timeout=None
         )
@@ -420,7 +427,7 @@ class PyEnv(object):
         self,
         name,
         *,
-        mirror='',
+        index_url='',
         update=False,
         upgrade=False,
         no_output=True,
@@ -432,7 +439,7 @@ class PyEnv(object):
         包名name必须提供，其他参数可以省略，但除了name参数，其他需要指定的参数需以关键
         字参数方式指定。
         :参数 name: str, 第三方包名。
-        :参数 mirror: str, 镜像源地址。
+        :参数 index_url: str, 镜像源地址。
         :参数 upgrade: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式安
         装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本）
         :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
@@ -444,13 +451,13 @@ class PyEnv(object):
         '''
         if not isinstance(name, str):
             raise 数据类型异常('包名参数的数据类型应为字符串。')
-        if not isinstance(mirror, str):
+        if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数数据类型应为字符串。')
         self._check_timeout(timeout)
         tips = '正在安装{}'.format(name)
-        cmds = [self.pip_path(seek=True), *_pipcmds['install'], name]
-        if mirror:
-            cmds.extend(('-i', mirror))
+        cmds = [self.pip_path(), *_pipcmds['install'], name]
+        if index_url:
+            cmds.extend(('-i', index_url))
         if upgrade or update:
             # update 参数即将弃用提醒
             if update:
@@ -481,7 +488,7 @@ class PyEnv(object):
             raise 数据类型异常('包名参数的数据类型应为"str"。')
         self._check_timeout(timeout)
         tips = '正在卸载{}'.format(name)
-        cmds = [self.pip_path(seek=True), *_pipcmds['uninstall'], name]
+        cmds = [self.pip_path(), *_pipcmds['uninstall'], name]
         return (
             name,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
@@ -508,7 +515,7 @@ class PyEnv(object):
             raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
         self._check_timeout(timeout)
         search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
-        cmds = [self.pip_path(seek=True), *_pipcmds['search'], *keywords]
+        cmds = [self.pip_path(), *_pipcmds['search'], *keywords]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode:
             return search_results
