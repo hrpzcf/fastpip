@@ -26,18 +26,29 @@
 
 import os
 import re
-from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
+from subprocess import (
+    PIPE,
+    STARTF_USESHOWWINDOW,
+    STARTUPINFO,
+    STDOUT,
+    SW_HIDE,
+    Popen,
+    TimeoutExpired,
+)
 from threading import Thread
 from time import sleep
 from warnings import warn
 
-from .errors import 文件查找异常, 参数值异常, 数据类型异常, 目录查找异常, 适用平台异常
+from .errors import 参数值异常, 数据类型异常, 文件查找异常, 目录查找异常, 适用平台异常
 from .findpypath import all_py_paths, cur_py_path
 
 if os.name != 'nt':
     raise 适用平台异常('运行于不支持的操作系统。')
 
 _SHOW_RUNNING_TIPS = True
+_startupinfo = STARTUPINFO()
+_startupinfo.dwFlags = STARTF_USESHOWWINDOW
+_startupinfo.wShowWindow = SW_HIDE
 
 # 预设镜像源：
 index_urls = {
@@ -103,7 +114,13 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     global _SHOW_RUNNING_TIPS
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
-    exec_f = Popen(cmds, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+    exec_f = Popen(
+        cmds,
+        stdout=PIPE,
+        stderr=STDOUT,
+        universal_newlines=True,
+        startupinfo=_startupinfo,
+    )
     try:
         exec_out = exec_f.communicate(timeout=timeout)
     except TimeoutExpired:
