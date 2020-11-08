@@ -2,18 +2,20 @@
 
 ------
 
-##### `注：fastpip 仅支持 Windows 系统。`
+`注：fastpip 仅支持 Windows 系统。`
 
-用 pip 命令安装：
+<br/>
+
+方法一：用 pip 命令安装：
 
 ```
 pip install -U fastpip
 ```
 安装完成。
 
+<br/><br/>
 
-
-或者从 Gitee 安装最新开发版本（推荐）：
+方法二：从 Gitee 安装最新开发版本（推荐）：
 
 1. 首先安装依赖模块psutil:
 
@@ -27,9 +29,11 @@ pip install -U fastpip
     pip install -U git+https://gitee.com/hrpzcf/fastpip@dev
     ```
 
+<br/>
+
 fastpip 0.2.0版本与0.1.0及以下版本api不兼容，以下示例仅适用于0.2.0及以上版本，所以推荐安装最新开发版本。
 
-
+<br/><br/>
 
 ### 如何使用
 
