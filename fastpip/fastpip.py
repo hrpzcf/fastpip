@@ -37,7 +37,6 @@ from subprocess import (
 )
 from threading import Thread
 from time import sleep
-from warnings import warn
 
 from .errors import 参数值异常, 数据类型异常, 文件查找异常, 目录查找异常, 适用平台异常
 from .findpypath import all_py_paths, cur_py_path
@@ -287,18 +286,6 @@ class PyEnv(object):
             info_list.append((pkg[0], pkg[-1]))
         return info_list
 
-    def pkgs_name(self, *, no_output=True, no_tips=True, timeout=None):
-        '''旧方法，即将被移除。'''
-        warn(
-            '\nPyEnv 类 pkgs_name 方法现已被 pkg_names 方法'
-            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.pkg_names(
-            no_output=no_output, no_tips=no_tips, timeout=timeout
-        )
-
     def pkg_names(self, *, no_output=True, no_tips=True, timeout=None):
         '''
         获取该Python目录下已安装的包名列表，没有获取到包名列表则返回空列表。
@@ -354,23 +341,6 @@ class PyEnv(object):
                     outdated_pkgs_info.append(res.groups())
         return outdated_pkgs_info
 
-    def update_pip(
-        self, *, index_url='', no_output=True, no_tips=True, timeout=None,
-    ):
-        '''旧方法，即将被移除。'''
-        warn(
-            '\nPyEnv 类 update_pip 方法现已被 upgrade_pip 方法'
-            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.upgrade_pip(
-            index_url=index_url,
-            no_output=no_output,
-            no_tips=no_tips,
-            timeout=timeout,
-        )
-
     def upgrade_pip(
         self, *, index_url='', no_output=True, no_tips=True, timeout=None,
     ):
@@ -391,16 +361,6 @@ class PyEnv(object):
             cmds.extend(('-i', index_url))
         return not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
 
-    def set_mirror(self, index_url=index_urls['opentuna']):
-        '''旧方法，即将被移除。'''
-        warn(
-            '\nPyEnv 类 set_mirror 方法现已被 set_global_index 方法'
-            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.set_global_index(index_url)
-
     def set_global_index(self, index_url=index_urls['opentuna']):
         '''
         设置pip全局镜像源地址。
@@ -413,16 +373,6 @@ class PyEnv(object):
         return not _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
         )[1]
-
-    def show_mirror(self):
-        '''旧方法，即将被移除。'''
-        warn(
-            '\nPyEnv 类 show_mirror 方法现已被 get_global_index 方法'
-            '代替，旧方法即将在 0.3.0 版本时移除，请及时更新你的源代码。',
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_global_index()
 
     def get_global_index(self):
         '''
@@ -462,7 +412,6 @@ class PyEnv(object):
         '''
         index_url = kwargs['index_url'] if 'index_url' in kwargs else ''
         timeout = kwargs['timeout'] if 'timeout' in kwargs else None
-        update = kwargs['update'] if 'update' in kwargs else False
         upgrade = kwargs['upgrade'] if 'upgrade' in kwargs else False
         no_tips = kwargs['no_tips'] if 'no_tips' in kwargs else True
         no_output = kwargs['no_output'] if 'no_output' in kwargs else True
@@ -475,15 +424,7 @@ class PyEnv(object):
         cmds = [self.pip_path(), *_pipcmds['install'], *names]
         if index_url:
             cmds.extend(('-i', index_url))
-        if upgrade or update:
-            # update 参数即将弃用提醒
-            if update:
-                warn(
-                    '\nPyEnv类install方法 update 参数已由 upgrade '
-                    '参数代替并即将在 0.3.0 版本弃用，请及时更新您的源代码。',
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
+        if upgrade:
             cmds.append('-U')
         return (
             names,
