@@ -240,7 +240,7 @@ class PyEnv(object):
         版本号；
         如果没有获取到信息或获取到信息但未正确匹配到信息格式，则返回None。
         直接打印PipInfo实例则显示概览：pip_info(pip版本、pip路径、相应Python版本)。
-        :返回值: 匹配到pip版本信息：_PipInfo实例；未获取到pip版本信息：返回None。
+        :return: 匹配到pip版本信息：_PipInfo实例；未获取到pip版本信息：返回None。
         '''
         cmds = [self.pip_path(), *_pipcmds['info']]
         result, retcode = _execute_cmd(
@@ -267,12 +267,12 @@ class PyEnv(object):
         '''
         获取该Python目录下已安装的包列表，列表包含(包名, 版本)元组，没有获取到则返回
         空列表。
-        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
-        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
-        :返回值: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表
+        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
+        :return: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表
         或空列表。
         '''
         self._check_timeout(timeout)
@@ -302,12 +302,12 @@ class PyEnv(object):
     def pkg_names(self, *, no_output=True, no_tips=True, timeout=None):
         '''
         获取该Python目录下已安装的包名列表，没有获取到包名列表则返回空列表。
-        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
-        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: float, 命令执行超时时长，单位为秒。
-        :返回值: list[str...] or lsit[], 包含包名的列表或空列表。
+        :param timeout: float, 命令执行超时时长，单位为秒。
+        :return: list[str...] or lsit[], 包含包名的列表或空列表。
         '''
         self._check_timeout(timeout)
         name_list, tips = [], '正在获取包名列表'
@@ -326,12 +326,12 @@ class PyEnv(object):
         获取可更新的包列表，列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组。
         如果没有获取到或者没有可更新的包，返回空列表。
         检查更新时，环境中已安装的包越多耗费时间越多，请耐心等待。
-        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
-        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
-        :返回值: lsit[tuple[str, str, str, str]] or lsit[],
+        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
+        :return: lsit[tuple[str, str, str, str]] or lsit[],
         包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
         '''
         self._check_timeout(timeout)
@@ -376,13 +376,13 @@ class PyEnv(object):
     ):
         '''
         升级pip自己。
-        :参数 index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
-        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        :param index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
-        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
-        :返回值: bool, 命令退出状态，True表示升级成功，False表示设置失败。
+        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
+        :return: bool, 命令退出状态，True表示升级成功，False表示设置失败。
         '''
         self._check_timeout(timeout)
         tips = '正在升级pip'
@@ -404,8 +404,8 @@ class PyEnv(object):
     def set_global_index(self, index_url=index_urls['opentuna']):
         '''
         设置pip全局镜像源地址。
-        :参数 index_url: str, 镜像源地址，参数可省略。
-        :返回值: bool, 退出状态，True表示设置成功，False表示设置失败。
+        :param index_url: str, 镜像源地址，参数可省略。
+        :return: bool, 退出状态，True表示设置成功，False表示设置失败。
         '''
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
@@ -427,7 +427,7 @@ class PyEnv(object):
     def get_global_index(self):
         '''
         显示当前pip全局镜像源地址。
-        :返回值: str, 当前系统pip全局镜像源地址。
+        :return: str, 当前系统pip全局镜像源地址。
         '''
         cmds = [self.pip_path(), *_pipcmds['get_index']]
         result, retcode = _execute_cmd(
@@ -440,39 +440,39 @@ class PyEnv(object):
             return ''
         return match_res.group(1)
 
-    def install(
-        self,
-        name,
-        *,
-        index_url='',
-        update=False,
-        upgrade=False,
-        no_output=True,
-        no_tips=True,
-        timeout=None,
-    ):
+    def install(self, *names, **kwargs):
         '''
         安装Python第三方包。
-        包名name必须提供，其他参数可以省略，但除了name参数，其他需要指定的参数需以关键
-        字参数方式指定。
-        :参数 name: str, 第三方包名。
-        :参数 index_url: str, 镜像源地址。
-        :参数 upgrade: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式安
+        包名names必须提供，其他参数可以省略，但除了names参数，其他需要指定的参数需以
+        关键字参数方式指定。
+        注意：包名names中只要有一个不可安装（无资源等），其他包也不会被安装。所以如果
+        你不能保证names中所有的包都能被安装，那最好只传一个包名参数给install，在外部
+        循环调用install方法安装所有的包。
+        :param names: str, 第三方包名（可变数量参数）。
+        :param index_url: str, 镜像源地址。
+        :param upgrade: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式安
         装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本）
-        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
-        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
-        False）。
-        :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
-        :返回值: tuple[str, bool], 返回(包名, 退出状态)元组，状态不为True则表示安装失败。
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置
+        为False）。
+        :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
+        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名
+        names中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
         '''
-        if not isinstance(name, str):
+        index_url = kwargs['index_url'] if 'index_url' in kwargs else ''
+        timeout = kwargs['timeout'] if 'timeout' in kwargs else None
+        update = kwargs['update'] if 'update' in kwargs else False
+        upgrade = kwargs['upgrade'] if 'upgrade' in kwargs else False
+        no_tips = kwargs['no_tips'] if 'no_tips' in kwargs else True
+        no_output = kwargs['no_output'] if 'no_output' in kwargs else True
+        if not all(isinstance(s, str) for s in names):
             raise 数据类型异常('包名参数的数据类型应为字符串。')
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数数据类型应为字符串。')
         self._check_timeout(timeout)
-        tips = '正在安装{}'.format(name)
-        cmds = [self.pip_path(), *_pipcmds['install'], name]
+        tips = '正在安装{}'.format(','.join(names))
+        cmds = [self.pip_path(), *_pipcmds['install'], *names]
         if index_url:
             cmds.extend(('-i', index_url))
         if upgrade or update:
@@ -486,28 +486,33 @@ class PyEnv(object):
                 )
             cmds.append('-U')
         return (
-            name,
+            names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
         )
 
-    def uninstall(self, name, *, no_output=True, no_tips=True, timeout=None):
+    def uninstall(self, *names, **kwargs):
         '''
         卸载Python第三方包。
-        :参数 name: str, 第三方包名。
-        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        注意：如果names中包含未安装的包名则跳过卸载，以下的退出状态仍为True。
+        :param names: str, 第三方包名。
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
-        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
-        False）。
-        :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
-        :返回值: tuple[str, bool], 返回(包名, 退出状态)元组，状态不为True则表示卸载失败。
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置
+        为False）。
+        :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
+        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态
+        不为True则表示卸载失败。
         '''
-        if not isinstance(name, str):
-            raise 数据类型异常('包名参数的数据类型应为"str"。')
+        timeout = kwargs['timeout'] if 'timeout' in kwargs else None
+        no_tips = kwargs['no_tips'] if 'no_tips' in kwargs else True
+        no_output = kwargs['no_output'] if 'no_output' in kwargs else True
+        if not all(isinstance(s, str) for s in names):
+            raise 数据类型异常('包名参数的数据类型应为字符串。')
         self._check_timeout(timeout)
-        tips = '正在卸载{}'.format(name)
-        cmds = [self.pip_path(), *_pipcmds['uninstall'], name]
+        tips = '正在卸载{}'.format(','.join(names))
+        cmds = [self.pip_path(), *_pipcmds['uninstall'], *names]
         return (
-            name,
+            names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
         )
 
@@ -518,13 +523,13 @@ class PyEnv(object):
         以关键字搜索包名。
         参数keywords应为包含关键字(str)的元组、列表或集合。
         返回包含(包名, 最新版本, 概述)元组的列表。
-        :参数 keywords: tuple or lsit or set, 关键字集合。
-        :参数 no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
+        :param keywords: tuple or lsit or set, 关键字集合。
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
-        :参数 no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
         False）。
-        :参数 timeout: int or float, 任务超时时长，单位为秒，可设为None。
-        :返回值: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
+        :param timeout: int or float, 任务超时时长，单位为秒，可设为None。
+        :return: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
         '''
         if not isinstance(keywords, (tuple, list, set)):
             raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
