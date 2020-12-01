@@ -188,12 +188,22 @@ class PyEnv(object):
 
     def py_info(self):
         '''获取Python版本信息。'''
+        source_code = 'import sys;sys.stdout.write(sys.version)'
         cur_dir_path = os.path.dirname(os.path.abspath(__file__))
+        py_file_path = os.path.join(cur_dir_path, 'pyinfo.py')
+        if not os.path.isfile(py_file_path):
+            if not os.path.exists(cur_dir_path):
+                try:
+                    os.makedirs(cur_dir_path)
+                except Exception:
+                    pass
+            try:
+                with open(py_file_path, 'wt', encoding='utf-8') as py_file:
+                    py_file.write(source_code)
+            except Exception:
+                pass
         result, retcode = _execute_cmd(
-            (
-                os.path.join(self.__path, 'python.exe'),
-                os.path.join(cur_dir_path, 'pyinfo.py'),
-            ),
+            (os.path.join(self.__path, 'python.exe'), py_file_path),
             '',
             True,
             True,
