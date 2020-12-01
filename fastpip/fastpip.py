@@ -151,7 +151,7 @@ class PyEnv(object):
         self.__path = self._check_path(path)
 
     def __str__(self):
-        return '{} 位于 {}'.format(self.py_info(), self.__path)
+        return '{} @ {}'.format(self.py_info(), self.__path)
 
     def _find_path(self, seek):
         if not seek:
@@ -346,11 +346,12 @@ class PyEnv(object):
     ):
         '''
         升级pip自己。
-        :param index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
-        False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
-        False）。
+        :param index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的
+        全局镜像源。
+        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数
+        设置为False）。
+        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参
+        数设置为False）。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :return: bool, 命令退出状态，True表示升级成功，False表示设置失败。
         '''
@@ -400,15 +401,15 @@ class PyEnv(object):
         循环调用install方法安装所有的包。
         :param names: str, 第三方包名（可变数量参数）。
         :param index_url: str, 镜像源地址。
-        :param upgrade: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式安
-        装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本）
+        :param upgrade: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式
+        安装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本）
         :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
         False）。
         :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置
         为False）。
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
-        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名
-        names中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
+        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名names
+        中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
         '''
         index_url = kwargs['index_url'] if 'index_url' in kwargs else ''
         timeout = kwargs['timeout'] if 'timeout' in kwargs else None
@@ -441,8 +442,8 @@ class PyEnv(object):
         :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置
         为False）。
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
-        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态
-        不为True则表示卸载失败。
+        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态不
+        为True则表示卸载失败。
         '''
         timeout = kwargs['timeout'] if 'timeout' in kwargs else None
         no_tips = kwargs['no_tips'] if 'no_tips' in kwargs else True
