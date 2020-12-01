@@ -269,8 +269,8 @@ class PyEnv(object):
         '''清理pip包名列表命令的无关输出。'''
         result = re.search(r'Package\s+Version\n[-\s]+\n(.+)', string, re.S)
         if not result:
-            return ''
-        return result.group(1).strip().split('\n')
+            return []
+        return re.findall(r'^\S+\s+\S+$', result.group(1), re.M)
 
     def pkgs_info(self, *, no_output=True, no_tips=True, timeout=None):
         '''
