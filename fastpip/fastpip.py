@@ -264,6 +264,8 @@ class PyEnv(object):
         直接打印PipInfo实例则显示概览：pip_info(pip版本、pip路径、相应Python版本)。
         :return: 匹配到pip版本信息：_PipInfo实例；未获取到pip版本信息：返回None。
         '''
+        if not self.pip_readied:
+            return
         cmds = [self.pip_path(), *_pipcmds['info']]
         result, retcode = _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
@@ -297,6 +299,8 @@ class PyEnv(object):
         :return: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表
         或空列表。
         '''
+        if not self.pip_readied:
+            return []
         self._check_timeout(timeout)
         info_list, tips = [], '正在获取(包名, 版本)列表'
         cmds = [self.pip_path(), *_pipcmds['list']]
@@ -319,6 +323,8 @@ class PyEnv(object):
         :param timeout: float, 命令执行超时时长，单位为秒。
         :return: list[str...] or lsit[], 包含包名的列表或空列表。
         '''
+        if not self.pip_readied:
+            return []
         self._check_timeout(timeout)
         name_list, tips = [], '正在获取包名列表'
         cmds = [self.pip_path(), *_pipcmds['list']]
@@ -344,6 +350,8 @@ class PyEnv(object):
         :return: lsit[tuple[str, str, str, str]] or lsit[],
         包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
         '''
+        if not self.pip_readied:
+            return []
         self._check_timeout(timeout)
         cmds = [self.pip_path(), *_pipcmds['outdated']]
         outdated_pkgs_info, tips = [], '正在检查更新'
@@ -378,6 +386,8 @@ class PyEnv(object):
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :return: bool, 命令退出状态，True表示升级成功，False表示设置失败。
         '''
+        if not self.pip_readied:
+            return False
         self._check_timeout(timeout)
         tips = '正在升级pip'
         cmds = [self.pip_path(), *_pipcmds['pip-upgrade']]
@@ -391,6 +401,8 @@ class PyEnv(object):
         :param index_url: str, 镜像源地址，参数可省略。
         :return: bool, 退出状态，True表示设置成功，False表示设置失败。
         '''
+        if not self.pip_readied:
+            return False
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
         cmds = [self.pip_path(), *_pipcmds['set_index'], index_url]
@@ -403,6 +415,8 @@ class PyEnv(object):
         显示当前pip全局镜像源地址。
         :return: str, 当前系统pip全局镜像源地址。
         '''
+        if not self.pip_readied:
+            return ''
         cmds = [self.pip_path(), *_pipcmds['get_index']]
         result, retcode = _execute_cmd(
             cmds, '', no_output=True, no_tips=True, timeout=None
@@ -434,6 +448,8 @@ class PyEnv(object):
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名names
         中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
         '''
+        if not self.pip_readied:
+            return tuple()
         index_url = kwargs.get('index_url', '')
         timeout = kwargs.get('timeout', None)
         upgrade = kwargs.get('upgrade', False)
@@ -468,6 +484,8 @@ class PyEnv(object):
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态不
         为True则表示卸载失败。
         '''
+        if not self.pip_readied:
+            return tuple()
         timeout = kwargs.get('timeout', None)
         no_tips = kwargs.get('no_tips', True)
         no_output = kwargs.get('no_output', True)
@@ -496,6 +514,8 @@ class PyEnv(object):
         :param timeout: int or float, 任务超时时长，单位为秒，可设为None。
         :return: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
         '''
+        if not self.pip_readied:
+            return []
         if not isinstance(keywords, (tuple, list, set)):
             raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
         if not all(isinstance(s, str) for s in keywords):
