@@ -152,10 +152,15 @@ class PyEnv(object):
     '''
 
     def __init__(self, path=''):
-        self.__path = self._check_path(path)
+        self.env_path = self._check_path(path)
 
     def __str__(self):
-        return '{} @ {}'.format(self.py_info(), self.__path)
+        return '{} @ {}'.format(self.py_info(), self.env_path)
+
+    def __setattr__(self, name, value):
+        if name == 'env_path' and hasattr(self, 'env_path'):
+            return print('PyEnv实例env_path属性不可修改。')
+        super().__setattr__(name, value)
 
     def _find_path(self, seek):
         if not seek:
@@ -207,7 +212,7 @@ class PyEnv(object):
             except Exception:
                 pass
         result, retcode = _execute_cmd(
-            (os.path.join(self.__path, 'python.exe'), py_file_path),
+            (os.path.join(self.env_path, 'python.exe'), py_file_path),
             '',
             True,
             True,
@@ -230,9 +235,9 @@ class PyEnv(object):
         如果在Scripts目录中没有找到pip可执行文件则抛出"文件查找异常"。
         :return: str, 该PyEnv实例的pip可执行文件的完整路径。
         '''
-        if not self.__path:
+        if not self.env_path:
             raise FileNotFoundError('本PyEnv实例Python安装目录信息丢失。')
-        dir_pip_exists = os.path.join(self.__path, 'Scripts')
+        dir_pip_exists = os.path.join(self.env_path, 'Scripts')
         try:
             dirs_and_files = os.listdir(dir_pip_exists)
         except Exception:
