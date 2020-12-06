@@ -133,8 +133,12 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
 
 
 def _fix_bad_code(string):
+    '''将pip search返回的文字中的乱码(#&1234;之类的字符)转换成正确的文字。'''
     for badcode in re.findall(r'(?:#&|&#)\d+?;', string):
-        string = string.replace(badcode, chr(int(badcode[2:-1])))
+        try:
+            string = string.replace(badcode, chr(int(badcode[2:-1])))
+        except Exception:
+            pass
     return string
 
 
