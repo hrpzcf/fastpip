@@ -3,14 +3,18 @@
 import os
 import re
 
-import psutil
+from psutil import disk_partitions
 
 
 def _possible_location():
     '''生成各磁盘上的常见的Python安装目录列表。'''
     most_possible_path = []
-    common_dir = 'Program Files', 'Program Files (x86)'
-    disk_parts = [dp.device for dp in psutil.disk_partitions()]
+    common_dir = (
+        'Program Files',
+        'Program Files (x86)',
+        os.path.join('Anaconda3', 'envs'),
+    )
+    disk_parts = [dp.device for dp in disk_partitions()]
     for dp in disk_parts:
         for cd in common_dir:
             full_path = os.path.join(dp, cd)
