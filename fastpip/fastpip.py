@@ -74,7 +74,7 @@ _pipcmds = {
 }
 
 
-class _PipInfo(object):
+class _PipInfo:
     '''PipInfo类，提供内部使用。'''
 
     def __init__(self, pipver, path, pyver):
@@ -142,7 +142,7 @@ def _fix_bad_code(string):
     return string
 
 
-class PyEnv(object):
+class PyEnv:
     '''
     Python环境类，此类接受一个指向Python解释器所在目录的路径参数（字符串）。
     此类实例的所有pip操作方法都将基于该路径参数所指的Python环境，不会对系统中其他
@@ -157,24 +157,29 @@ class PyEnv(object):
 
     def __init__(self, path=''):
         if path == '':
-            self.env_path = self._find_py_dir()
-        elif self._check_path(path):
-            self.env_path = path
+            self.env_path = PyEnv._find_py_dir()
+        elif PyEnv._check_path(path):
+            self.env_path = os.path.join(path, '')
         else:
             raise PyEnvNotFound('"{}"不是有效的Python目录路径。'.format(path))
-        self.pip_readied = True if self.pip_path() else False
 
     def __str__(self):
         return '{} @ {}'.format(self.py_info(), self.env_path)
 
     def __setattr__(self, name, value):
-        if (name == 'env_path' or name == 'pip_readied') and hasattr(
-            self, name
-        ):
-            return print('PyEnv实例{}属性不可修改。'.format(name))
-        super().__setattr__(name, value)
+        if name == 'env_path' and hasattr(self, name):
+            print('PyEnv实例的env_path属性不可修改。')
+        elif name == 'pip_readied':
+            print('PyEnv实例的pip_readied属性不可修改。')
+        else:
+            super().__setattr__(name, value)
 
-    def _find_py_dir(self):
+    @property
+    def pip_readied(self):
+        return bool(self.pip_path())
+
+    @staticmethod
+    def _find_py_dir():
         py_path = cur_py_path()
         if not py_path:
             py_path = all_py_paths()
@@ -183,7 +188,8 @@ class PyEnv(object):
             py_path = py_path[0]
         return py_path
 
-    def _check_path(self, path):
+    @staticmethod
+    def _check_path(path):
         '''检查参数path是否是一个有效的Python目录路径。'''
         if not isinstance(path, str) or not os.path.exists(
             os.path.join(path, 'python.exe')
@@ -531,7 +537,7 @@ class PyEnv(object):
         for search_result in result:
             res = pattern.match(search_result)
             if res:
-                name, version, summary = res.groups()
+                *name_and_version, summary = res.groups()
                 summary = _fix_bad_code(summary)
-                search_results.append((name, version, summary))
+                search_results.append((*name_and_version, summary))
         return search_results
