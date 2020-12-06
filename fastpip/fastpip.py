@@ -233,25 +233,23 @@ class PyEnv(object):
 
     def pip_path(self):
         '''
-        根据__path属性所指的Python安装目录获取pip可执行文件路径。
+        根据env_path属性所指的Python安装目录获取pip可执行文件路径。
         如果Scripts目录不存在或无法打开则抛出"目录查找异常"。
         如果在Scripts目录中没有找到pip可执行文件则抛出"文件查找异常"。
-        :return: str, 该PyEnv实例的pip可执行文件的完整路径。
+        :return: str, 该PyEnv实例的pip可执行文件的完整路径或空字符。
         '''
-        if not self.env_path:
-            raise FileNotFoundError('本PyEnv实例Python安装目录信息丢失。')
         dir_pip_exists = os.path.join(self.env_path, 'Scripts')
         try:
             dirs_and_files = os.listdir(dir_pip_exists)
         except Exception:
-            raise 目录查找异常('目录{}不存在或无法打开。'.format(dir_pip_exists))
+            return ''
         for dir_or_file in dirs_and_files:
             if os.path.isdir(os.path.join(dir_pip_exists, dir_or_file)):
                 continue
             result = re.match(r'^pip.*\.exe$', dir_or_file)
             if result:
                 return os.path.join(dir_pip_exists, result.group())
-        raise 文件查找异常('目录{}中没有找到pip可执行文件。'.format(dir_pip_exists))
+        return ''
 
     def pip_info(self):
         '''
