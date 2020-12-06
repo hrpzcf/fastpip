@@ -433,11 +433,11 @@ class PyEnv(object):
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名names
         中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
         '''
-        index_url = kwargs['index_url'] if 'index_url' in kwargs else ''
-        timeout = kwargs['timeout'] if 'timeout' in kwargs else None
-        upgrade = kwargs['upgrade'] if 'upgrade' in kwargs else False
-        no_tips = kwargs['no_tips'] if 'no_tips' in kwargs else True
-        no_output = kwargs['no_output'] if 'no_output' in kwargs else True
+        index_url = kwargs.get('index_url', '')
+        timeout = kwargs.get('timeout', None)
+        upgrade = kwargs.get('upgrade', False)
+        no_tips = kwargs.get('no_tips', True)
+        no_output = kwargs.get('no_output', True)
         if not all(isinstance(s, str) for s in names):
             raise 数据类型异常('包名参数的数据类型应为字符串。')
         if not isinstance(index_url, str):
@@ -467,9 +467,9 @@ class PyEnv(object):
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态不
         为True则表示卸载失败。
         '''
-        timeout = kwargs['timeout'] if 'timeout' in kwargs else None
-        no_tips = kwargs['no_tips'] if 'no_tips' in kwargs else True
-        no_output = kwargs['no_output'] if 'no_output' in kwargs else True
+        timeout = kwargs.get('timeout', None)
+        no_tips = kwargs.get('no_tips', True)
+        no_output = kwargs.get('no_output', True)
         if not all(isinstance(s, str) for s in names):
             raise 数据类型异常('包名参数的数据类型应为字符串。')
         self._check_timeout(timeout)
