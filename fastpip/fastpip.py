@@ -38,7 +38,7 @@ from subprocess import (
 from threading import Thread
 from time import sleep
 
-from .errors import 参数值异常, 数据类型异常, 文件查找异常, 目录查找异常, 适用平台异常
+from .errors import *
 from .findpypath import all_py_paths, cur_py_path
 
 if os.name != 'nt':
@@ -51,12 +51,12 @@ _startupinfo.wShowWindow = SW_HIDE
 
 # 预设镜像源：
 index_urls = {
-    'opentuna': 'https://opentuna.cn/pypi/web/simple',  # 清华源
-    'tsinghua': 'https://pypi.tuna.tsinghua.edu.cn/simple',  # 清华源
-    'tencent': 'https://mirrors.cloud.tencent.com/pypi/simple',  # 腾讯源
     'aliyun': 'https://mirrors.aliyun.com/pypi/simple/',  # 阿里源
+    'tencent': 'https://mirrors.cloud.tencent.com/pypi/simple',  # 腾讯源
     'douban': 'https://pypi.doubanio.com/simple/',  # 豆瓣源
     'huawei': 'https://mirrors.huaweicloud.com/repository/pypi/simple',  # 华为源
+    'opentuna': 'https://opentuna.cn/pypi/web/simple',  # 清华源
+    'tsinghua': 'https://pypi.tuna.tsinghua.edu.cn/simple',  # 清华源
     'netease': 'https://mirrors.163.com/pypi/simple/',  # 网易源
 }
 
@@ -152,7 +152,10 @@ class PyEnv(object):
     '''
 
     def __init__(self, path=''):
-        self.env_path = self._check_path(path)
+        if self._check_path(path):
+            self.env_path = path
+        else:
+            self.env_path = self._find_py()
 
     def __str__(self):
         return '{} @ {}'.format(self.py_info(), self.env_path)
@@ -162,28 +165,22 @@ class PyEnv(object):
             return print('PyEnv实例env_path属性不可修改。')
         super().__setattr__(name, value)
 
-    def _find_path(self, seek):
-        if not seek:
-            raise 目录查找异常('没有提供有效Python目录路径且未允许自动查找。')
+    def _find_py(self):
         py_path = cur_py_path()
         if not py_path:
             py_path = all_py_paths()
             if not py_path:
-                raise 目录查找异常('自动查找没有找到任何Python安装目录。')
+                raise 目录查找异常('没有找到Python安装目录。')
             py_path = py_path[0]
         return py_path
 
     def _check_path(self, path):
-        '''检查初始化参数path是否是一个有效的路径。'''
-        if not isinstance(path, str):
-            raise 数据类型异常('参数path类型应为字符串。')
-        if not os.path.exists(path):
-            if path == '':
-                return self._find_path(True)
-            raise 目录查找异常('参数path所指路径不存在。')
-        if not os.path.isdir(path):
-            raise 目录查找异常('参数path所指路径不是一个文件夹。')
-        return os.path.join(path, '')
+        '''检查参数path是否是一个有效的Python目录路径。'''
+        if not isinstance(path, str) or not os.path.exists(
+            os.path.join(path, 'python.exe')
+        ):
+            return False
+        return True
 
     @staticmethod
     def _check_timeout(timeout):
