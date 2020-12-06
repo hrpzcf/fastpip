@@ -1,19 +1,16 @@
+# coding: utf-8
+
 import os
-
 from setuptools import find_packages, setup
+from fastpip import AUTHOR, EMAIL, NAME, VERSION, WEBSITE
 
-from fastpip import NAME, VERSION, AUTHOR, EMAIL, WEBSITE
-
-description = '一个对pip命令行操作进行简单封装的模块，可在代码中实现方便的pip命令操作。'
-long_description = description
-
+description = '一个对pip命令行操作进行简单封装的包，可以在Python3源代码中实现方便的pip包管理操作。'
 if os.path.exists('README.md'):
     try:
         with open('README.md', 'r', encoding='utf-8') as mdfile:
             long_description = mdfile.read()
     except Exception:
-        pass
-
+        long_description = description
 setup(
     name=NAME,
     version=VERSION,
@@ -35,5 +32,5 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.8',
     ],
-    keywords=['pip', 'encapsulation'],
+    keywords=['pip', 'package'],
 )
