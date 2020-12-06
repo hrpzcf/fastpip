@@ -161,14 +161,17 @@ class PyEnv(object):
         elif self._check_path(path):
             self.env_path = path
         else:
-            raise PyEnvNotFound('路径"{}"不是有效的Python目录路径。'.format(path))
+            raise PyEnvNotFound('"{}"不是有效的Python目录路径。'.format(path))
+        self.pip_readied = True if self.pip_path() else False
 
     def __str__(self):
         return '{} @ {}'.format(self.py_info(), self.env_path)
 
     def __setattr__(self, name, value):
-        if name == 'env_path' and hasattr(self, 'env_path'):
-            return print('PyEnv实例env_path属性不可修改。')
+        if (name == 'env_path' or name == 'pip_readied') and hasattr(
+            self, name
+        ):
+            return print('PyEnv实例{}属性不可修改。'.format(name))
         super().__setattr__(name, value)
 
     def _find_py_dir(self):
