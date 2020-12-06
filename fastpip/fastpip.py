@@ -147,15 +147,21 @@ class PyEnv(object):
     Python环境类，此类接受一个指向Python解释器所在目录的路径参数（字符串）。
     此类实例的所有pip操作方法都将基于该路径参数所指的Python环境，不会对系统中其他
     Python环境产生影响。
-    PyEnv无路径参数实例化时，默认使用cur_py_path函数自动选取Python目录路径，您可以
-    调用cur_py_path函数获取该Python目录路径用以确认当前操作的是哪个Python环境。
+    PyEnv类无参数实例化时，默认使用cur_py_path函数选取系统环境变量PATH中的
+    首个Python目录路径，如果系统环境变量PATH中没有找到Python目录路径，则调用
+    all_py_paths函数自动在本地硬盘常用安装位置查找Python目录，如果仍未找到，则抛出
+    "目录查找异常"。
+    PyEnv类有参数实例化时，如果参数path数据类型不是"str"或所指的路径中没找到Python
+    解释器，则抛出"PyEnvNotFound"异常。
     '''
 
     def __init__(self, path=''):
-        if self._check_path(path):
+        if path == '':
+            self.env_path = self._find_py_dir()
+        elif self._check_path(path):
             self.env_path = path
         else:
-            self.env_path = self._find_py()
+            raise PyEnvNotFound('路径"{}"不是有效的Python目录路径。'.format(path))
 
     def __str__(self):
         return '{} @ {}'.format(self.py_info(), self.env_path)
@@ -165,7 +171,7 @@ class PyEnv(object):
             return print('PyEnv实例env_path属性不可修改。')
         super().__setattr__(name, value)
 
-    def _find_py(self):
+    def _find_py_dir(self):
         py_path = cur_py_path()
         if not py_path:
             py_path = all_py_paths()
