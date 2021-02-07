@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 
 ################################################################################
 # MIT License
 
-# Copyright (c) 2020 hrpzcf / hrp < hrpzcf@foxmail.com >
+# Copyright (c) 2020 hrp/hrpzcf <hrpzcf@foxmail.com>
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
+# Formatted with black 20.8b1.
+################################################################################
 
 import os
 import re
+import sys
 from subprocess import (
     PIPE,
     STARTF_USESHOWWINDOW,
@@ -33,10 +36,10 @@ from subprocess import (
     STDOUT,
     SW_HIDE,
     Popen,
-    TimeoutExpired,
 )
 from threading import Thread
 from time import sleep
+from warnings import warn
 
 from .errors import *
 from .findpypath import all_py_paths, cur_py_path
@@ -45,9 +48,9 @@ if os.name != 'nt':
     raise 适用平台异常('运行于不支持的操作系统。')
 
 _SHOW_RUNNING_TIPS = True
-_startupinfo = STARTUPINFO()
-_startupinfo.dwFlags = STARTF_USESHOWWINDOW
-_startupinfo.wShowWindow = SW_HIDE
+_STARTUP = STARTUPINFO()
+_STARTUP.dwFlags = STARTF_USESHOWWINDOW
+_STARTUP.wShowWindow = SW_HIDE
 
 # 预设镜像源：
 index_urls = {
@@ -65,7 +68,7 @@ _pipcmds = {
     'info': ('-V',),
     'list': ('list',),
     'outdated': ('list', '--outdated'),
-    'pip-upgrade': ('install', 'pip', '-U'),
+    'pip_upgrade': ('install', 'pip', '-U'),
     'set_index': ('config', 'set', 'global.index-url'),
     'get_index': ('config', 'list'),
     'install': ('install',),
@@ -75,23 +78,35 @@ _pipcmds = {
 
 
 class _PipInfo:
-    '''PipInfo类，提供内部使用。'''
+    """PipInfo类，供内部使用。"""
 
     def __init__(self, pipver, path, pyver):
-        self.path = path
-        self.pyver = pyver
-        self.pipver = pipver
+        self.__path = path
+        self.__pyver = pyver
+        self.__pipver = pipver
 
     def __str__(self):
         return 'pip_info(pipver={}, path={}, pyver={})'.format(
-            self.pipver, self.path, self.pyver
+            self.__pipver, self.__path, self.__pyver
         )
 
     __repr__ = __str__
 
+    @property
+    def path(self):
+        return self.__path
+
+    @property
+    def pyver(self):
+        return self.__pyver
+
+    @property
+    def pipver(self):
+        return self.__pipver
+
 
 def _tips_and_wait(tips):
-    '''打印等待中提示信息，返回线程实例。'''
+    """打印等待中提示信息，返回线程实例。"""
 
     def _print_tips(tips):
         global _SHOW_RUNNING_TIPS
@@ -109,7 +124,7 @@ def _tips_and_wait(tips):
 
 
 def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
-    '''执行命令，输出等待提示语、输出命令执行结果并返回。'''
+    """执行命令，输出等待提示语、输出命令执行结果并返回。"""
     global _SHOW_RUNNING_TIPS
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
@@ -118,11 +133,11 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
         stdout=PIPE,
         stderr=STDOUT,
         universal_newlines=True,
-        startupinfo=_startupinfo,
+        startupinfo=_STARTUP,
     )
     try:
         exec_out = exec_f.communicate(timeout=timeout)
-    except TimeoutExpired:
+    except Exception:
         exec_out = '', -1
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
@@ -133,7 +148,7 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
 
 
 def _fix_bad_code(string):
-    '''将pip search返回的文字中的乱码(#&1234;之类的字符)转换成正确的文字。'''
+    """将pip search返回的文字中的乱码(#&1234;之类的字符)转换成正确的文字。"""
     for badcode in re.findall(r'(?:#&|&#)\d+?;', string):
         try:
             string = string.replace(badcode, chr(int(badcode[2:-1])))
@@ -143,62 +158,59 @@ def _fix_bad_code(string):
 
 
 class PyEnv:
-    '''
-    Python环境类，此类接受一个指向Python解释器所在目录的路径参数（字符串）。
-    此类实例的所有pip操作方法都将基于该路径参数所指的Python环境，不会对系统中其他
-    Python环境产生影响。
-    PyEnv类无参数实例化时，默认使用cur_py_path函数选取系统环境变量PATH中的
-    首个Python目录路径，如果系统环境变量PATH中没有找到Python目录路径，则调用
-    all_py_paths函数自动在本地硬盘常用安装位置查找Python目录，如果仍未找到，则抛出
-    "目录查找异常"。
-    PyEnv类有参数实例化时，如果参数path数据类型不是"str"或所指的路径中没找到Python
-    解释器，则抛出"PyEnvNotFound"异常。
-    '''
+    """
+    Python环境类，此类接受一个指向Python解释器所在目录的路径参数(字符串)。
+    此类实例的所有pip操作方法都将基于该路径参数所指的Python环境，不会对系统中其他Python环境产生影响。
+    PyEnv类无参数实例化时，默认使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径。
+    如果系统环境变量PATH中没有找到Python目录路径，则将路径属性env_path设置为空字符串。
+    PyEnv类有参数实例化时，如果参数path数据类型不是"str"或所指的路径中没找到Python解释器，则将路径属性env_path设置为空字符串。
+    检查PyEnv实例是否是一个指向正确Python环境的有效
+    """
+
+    cur_d = os.path.dirname(os.path.abspath(__file__))
 
     def __init__(self, path=''):
         if path == '':
-            self.env_path = PyEnv._find_py_dir()
-        elif PyEnv._check_path(path):
-            self.env_path = os.path.join(path, '')
+            self.__env_path = cur_py_path()
         else:
-            raise PyEnvNotFound('"{}"不是有效的Python目录路径。'.format(path))
+            self.__env_path = self.__check(path)
+
+    @property
+    def env_path(self):
+        """代表该Python环境目录路径的属性，有可能是空字符串。"""
+        # 实时检查Python环境路径
+        self.__env_path = self.__check(self.__env_path)
+        return self.__env_path
 
     def __str__(self):
-        return '{} @ {}'.format(self.py_info(), self.env_path)
-
-    def __setattr__(self, name, value):
-        if name == 'env_path' and hasattr(self, name):
-            print('PyEnv实例的env_path属性不可修改。')
-        elif name == 'pip_readied':
-            print('PyEnv实例的pip_readied属性不可修改。')
-        else:
-            super().__setattr__(name, value)
+        location = self.env_path or 'unknown location'
+        return '{} @ {}'.format(self.py_info(), location)
 
     @property
     def pip_readied(self):
+        warn('\n本属性已被pip_ready属性取代并将在下个版本移除，请尽快更新您的源代码。', stacklevel=2)
+        return bool(self.pip_path())
+
+    @property
+    def pip_ready(self):
+        """
+        代表该Python环境中pip是否已安装的属性。
+        值为True为pip已安装，反之False为未安装。
+        """
         return bool(self.pip_path())
 
     @staticmethod
-    def _find_py_dir():
-        py_path = cur_py_path()
-        if not py_path:
-            py_path = all_py_paths()
-            if not py_path:
-                raise 目录查找异常('没有找到Python安装目录。')
-            py_path = py_path[0]
-        return py_path
-
-    @staticmethod
-    def _check_path(path):
-        '''检查参数path是否是一个有效的Python目录路径。'''
-        if not isinstance(path, str) or not os.path.exists(
-            os.path.join(path, 'python.exe')
+    def __check(_path):
+        """检查参数path是否是一个有效的Python目录路径。"""
+        if not (
+            isinstance(_path, str)
+            and os.path.isfile(os.path.join(_path, 'python.exe'))
         ):
-            return False
-        return True
+            return ''
+        return os.path.join(_path, '')
 
     @staticmethod
-    def _check_timeout(timeout):
+    def __check_timeout_num(timeout):
         if not isinstance(timeout, (int, float)):
             if timeout is None:
                 return True
@@ -208,45 +220,48 @@ class PyEnv:
         return True
 
     def py_info(self):
-        '''获取Python版本信息。'''
-        source_code = 'import sys;sys.stdout.write(sys.version)'
-        cur_dir_path = os.path.dirname(os.path.abspath(__file__))
-        py_file_path = os.path.join(cur_dir_path, 'pyinfo.py')
-        if not os.path.isfile(py_file_path):
-            if not os.path.exists(cur_dir_path):
+        """获取当前环境Python版本信息。"""
+        information = 'Python {} :: {} bit'
+        if not self.env_path:
+            return information.format('0.0.0', '?')
+        source_code = 'import sys;print(sys.version)'
+        script_path = os.path.join(self.cur_d, '__pyinfo.py')
+        if not os.path.isfile(script_path):
+            if not os.path.exists(self.cur_d):
                 try:
-                    os.makedirs(cur_dir_path)
+                    os.makedirs(self.cur_d)
                 except Exception:
                     pass
             try:
-                with open(py_file_path, 'wt', encoding='utf-8') as py_file:
+                with open(script_path, 'wt', encoding='utf-8') as py_file:
                     py_file.write(source_code)
             except Exception:
-                pass
+                return information.format('0.0.0', '?')
         result, retcode = _execute_cmd(
-            (os.path.join(self.env_path, 'python.exe'), py_file_path),
+            (os.path.join(self.env_path, 'python.exe'), script_path),
             '',
             True,
             True,
             None,
         )
-        ver_info = 'Python {} :: {} bit'
         if retcode or not result:
-            return ver_info.format('0.0.0', '?')
+            return information.format('0.0.0', '?')
         info = re.match(
             r'(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)', result
         )
         if not info:
-            return ver_info.format('0.0.0', '?')
-        return ver_info.format(*info.groups())
+            return information.format('0.0.0', '?')
+        return information.format(*info.groups())
 
     def pip_path(self):
-        '''
+        """
         根据env_path属性所指的Python安装目录获取pip可执行文件路径。
         如果Scripts目录不存在或无法打开则抛出"目录查找异常"。
         如果在Scripts目录中没有找到pip可执行文件则抛出"文件查找异常"。
         :return: str, 该PyEnv实例的pip可执行文件的完整路径或空字符。
-        '''
+        """
+        if not self.env_path:
+            return ''
         dir_pip_exists = os.path.join(self.env_path, 'Scripts')
         try:
             dirs_and_files = os.listdir(dir_pip_exists)
@@ -261,16 +276,15 @@ class PyEnv:
         return ''
 
     def pip_info(self):
-        '''
+        """
         获取该目录的pip版本信息。
         如果获取到pip版本信息，则返回一个PipInfo实例，可以通过访问实例的
-        pipver、path、pyver属性分别获取到pip版本号、pip目录路径、该pip所在的Python
-        版本号；
-        如果没有获取到信息或获取到信息但未正确匹配到信息格式，则返回None。
+        pipver、path、pyver属性分别获取到pip版本号、pip目录路径、该pip所在的Python环境版本号；
+        如果没有获取到pip信息或获取到信息但未正确匹配到信息格式，则返回None。
         直接打印PipInfo实例则显示概览：pip_info(pip版本、pip路径、相应Python版本)。
         :return: 匹配到pip版本信息：_PipInfo实例；未获取到pip版本信息：返回None。
-        '''
-        if not self.pip_readied:
+        """
+        if not self.pip_ready:
             return
         cmds = [self.pip_path(), *_pipcmds['info']]
         result, retcode = _execute_cmd(
@@ -286,79 +300,70 @@ class PyEnv:
         return None
 
     @staticmethod
-    def _clean_info(string):
-        '''清理pip包名列表命令的无关输出。'''
+    def __clean_info(string):
+        """清理pip包名列表命令的无关输出。"""
         result = re.search(r'Package\s+Version\n[-\s]+\n(.+)', string, re.S)
         if not result:
             return []
         return re.findall(r'^\S+\s+\S+$', result.group(1), re.M)
 
     def pkgs_info(self, *, no_output=True, no_tips=True, timeout=None):
-        '''
-        获取该Python目录下已安装的包列表，列表包含(包名, 版本)元组，没有获取到则返回
-        空列表。
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
-        False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
-        False）。
+        """
+        获取该Python目录下已安装的包列表，列表包含(包名, 版本)元组，没有获取到则返回空列表。
+        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
+        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
-        :return: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表
-        或空列表。
-        '''
-        if not self.pip_readied:
+        :return: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表或空列表。
+        """
+        if not self.pip_ready:
             return []
-        self._check_timeout(timeout)
+        self.__check_timeout_num(timeout)
         info_list, tips = [], '正在获取(包名, 版本)列表'
         cmds = [self.pip_path(), *_pipcmds['list']]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
             return info_list
-        info = self._clean_info(result)
+        info = self.__clean_info(result)
         for pkg in info:
             pkg = pkg.split(' ')
             info_list.append((pkg[0], pkg[-1]))
         return info_list
 
     def pkg_names(self, *, no_output=True, no_tips=True, timeout=None):
-        '''
+        """
         获取该Python目录下已安装的包名列表，没有获取到包名列表则返回空列表。
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
-        False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
-        False）。
+        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
+        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: float, 命令执行超时时长，单位为秒。
         :return: list[str...] or lsit[], 包含包名的列表或空列表。
-        '''
-        if not self.pip_readied:
+        """
+        if not self.pip_ready:
             return []
-        self._check_timeout(timeout)
+        self.__check_timeout_num(timeout)
         name_list, tips = [], '正在获取包名列表'
         cmds = [self.pip_path(), *_pipcmds['list']]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode or not result:
             return name_list
-        info = self._clean_info(result)
+        info = self.__clean_info(result)
         for pkg in info:
             pkg = pkg.split(' ')
             name_list.append(pkg[0])
         return name_list
 
     def outdated(self, *, no_output=True, no_tips=True, timeout=30):
-        '''
+        """
         获取可更新的包列表，列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组。
         如果没有获取到或者没有可更新的包，返回空列表。
         检查更新时，环境中已安装的包越多耗费时间越多，请耐心等待。
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
-        False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
-        False）。
+        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
+        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
-        :return: lsit[tuple[str, str, str, str]] or lsit[],
-        包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
-        '''
-        if not self.pip_readied:
+        :return: lsit[tuple[str, str, str, str]] or lsit[]，包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
+        """
+        if not self.pip_ready:
             return []
-        self._check_timeout(timeout)
+        self.__check_timeout_num(timeout)
         cmds = [self.pip_path(), *_pipcmds['outdated']]
         outdated_pkgs_info, tips = [], '正在检查更新'
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
@@ -368,46 +373,54 @@ class PyEnv:
         pattern1 = r'^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$'
         pattern2 = r'^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$'
         for pkg_ver_info in result:
-            res = re.match(pattern1, pkg_ver_info,)
+            res = re.match(
+                pattern1,
+                pkg_ver_info,
+            )
             if res:
                 outdated_pkgs_info.append(res.groups())
         if not outdated_pkgs_info:
             for pkg_ver_info in result:
-                res = re.match(pattern2, pkg_ver_info,)
+                res = re.match(
+                    pattern2,
+                    pkg_ver_info,
+                )
                 if res:
                     outdated_pkgs_info.append(res.groups())
         return outdated_pkgs_info
 
     def upgrade_pip(
-        self, *, index_url='', no_output=True, no_tips=True, timeout=None,
+        self,
+        *,
+        index_url='',
+        no_output=True,
+        no_tips=True,
+        timeout=None,
     ):
-        '''
-        升级pip自己。
-        :param index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的
-        全局镜像源。
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数
-        设置为False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参
-        数设置为False）。
+        """
+        升级pip自身。
+        :param index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
+        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
+        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :return: bool, 命令退出状态，True表示升级成功，False表示设置失败。
-        '''
-        if not self.pip_readied:
+        """
+        if not self.pip_ready:
             return False
-        self._check_timeout(timeout)
+        self.__check_timeout_num(timeout)
         tips = '正在升级pip'
-        cmds = [self.pip_path(), *_pipcmds['pip-upgrade']]
+        cmds = [self.pip_path(), *_pipcmds['pip_upgrade']]
         if index_url:
             cmds.extend(('-i', index_url))
         return not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
 
     def set_global_index(self, index_url=index_urls['opentuna']):
-        '''
+        """
         设置pip全局镜像源地址。
         :param index_url: str, 镜像源地址，参数可省略。
         :return: bool, 退出状态，True表示设置成功，False表示设置失败。
-        '''
-        if not self.pip_readied:
+        """
+        if not self.pip_ready or not index_url:
             return False
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
@@ -417,11 +430,11 @@ class PyEnv:
         )[1]
 
     def get_global_index(self):
-        '''
+        """
         显示当前pip全局镜像源地址。
         :return: str, 当前系统pip全局镜像源地址。
-        '''
-        if not self.pip_readied:
+        """
+        if not self.pip_ready:
             return ''
         cmds = [self.pip_path(), *_pipcmds['get_index']]
         result, retcode = _execute_cmd(
@@ -435,26 +448,20 @@ class PyEnv:
         return match_res.group(1)
 
     def install(self, *names, **kwargs):
-        '''
+        """
         安装Python第三方包。
-        包名names必须提供，其他参数可以省略，但除了names参数，其他需要指定的参数需以
-        关键字参数方式指定。
-        注意：包名names中只要有一个不可安装（无资源等），其他包也不会被安装。所以如果
-        你不能保证names中所有的包都能被安装，那最好只传一个包名参数给install，在外部
-        循环调用install方法安装所有的包。
-        :param names: str, 第三方包名（可变数量参数）。
+        包名names必须提供，其他参数可以省略，但除了names参数，其他需要指定的参数需以关键字参数方式指定。
+        注意：包名names中只要有一个不可安装(无资源等原因)，其他包也不会被安装。
+        所以如果你不能保证names中所有的包都能被安装，那最好只传一个包名参数给install，在外部循环调用install方法安装所有的包。
+        :param names: str, 第三方包名(可变数量参数)。
         :param index_url: str, 镜像源地址。
-        :param upgrade: bool, 是否以升级模式安装（如果之前已安装该包，则以升级模式
-        安装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本）
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
-        False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置
-        为False）。
+        :param upgrade: bool, 是否以升级模式安装(如果之前已安装该包，则以升级模式安装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本)
+        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
+        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
-        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名names
-        中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
-        '''
-        if not self.pip_readied:
+        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名names中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
+        """
+        if not self.pip_ready or not names:
             return tuple()
         index_url = kwargs.get('index_url', '')
         timeout = kwargs.get('timeout', None)
@@ -465,7 +472,7 @@ class PyEnv:
             raise 数据类型异常('包名参数的数据类型应为字符串。')
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数数据类型应为字符串。')
-        self._check_timeout(timeout)
+        self.__check_timeout_num(timeout)
         tips = '正在安装{}'.format(','.join(names))
         cmds = [self.pip_path(), *_pipcmds['install'], *names]
         if index_url:
@@ -478,26 +485,23 @@ class PyEnv:
         )
 
     def uninstall(self, *names, **kwargs):
-        '''
+        """
         卸载Python第三方包。
         注意：如果names中包含未安装的包名则跳过卸载，以下的退出状态仍为True。
         :param names: str, 第三方包名。
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
-        False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置
-        为False）。
+        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
+        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
-        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态不
-        为True则表示卸载失败。
-        '''
-        if not self.pip_readied:
+        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态不为True则表示卸载失败。
+        """
+        if not self.pip_ready or not names:
             return tuple()
         timeout = kwargs.get('timeout', None)
         no_tips = kwargs.get('no_tips', True)
         no_output = kwargs.get('no_output', True)
         if not all(isinstance(s, str) for s in names):
             raise 数据类型异常('包名参数的数据类型应为字符串。')
-        self._check_timeout(timeout)
+        self.__check_timeout_num(timeout)
         tips = '正在卸载{}'.format(','.join(names))
         cmds = [self.pip_path(), *_pipcmds['uninstall'], *names]
         return (
@@ -506,27 +510,34 @@ class PyEnv:
         )
 
     def search(
-        self, keywords, *, no_output=True, no_tips=True, timeout=None,
+        self,
+        keywords,
+        *,
+        no_output=True,
+        no_tips=True,
+        timeout=None,
     ):
-        '''
+        """
         以关键字搜索包名。
         参数keywords应为包含关键字(str)的元组、列表或集合。
         返回包含(包名, 最新版本, 概述)元组的列表。
         :param keywords: tuple or lsit or set, 关键字集合。
-        :param no_output: bool, 是否在终端上显示命令输出（使用GUI时请将此参数设置为
-        False）。
-        :param no_tips: bool, 是否在终端上显示等待提示信息（使用GUI时请将此参数设置为
-        False）。
+        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
+        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 任务超时时长，单位为秒，可设为None。
         :return: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
-        '''
-        if not self.pip_readied:
+        """
+        warn(
+            '\n由于pip即将移除search命令，所以fastpip也即将在下个版本移除此方法，请尽快更新您的源代码。',
+            stacklevel=2,
+        )
+        if not self.pip_ready or not keywords:
             return []
         if not isinstance(keywords, (tuple, list, set)):
             raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
         if not all(isinstance(s, str) for s in keywords):
             raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
-        self._check_timeout(timeout)
+        self.__check_timeout_num(timeout)
         search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
         cmds = [self.pip_path(), *_pipcmds['search'], *keywords]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
@@ -541,3 +552,116 @@ class PyEnv:
                 summary = _fix_bad_code(summary)
                 search_results.append((*name_and_version, summary))
         return search_results
+
+    def names_for_import(self):
+        """获取该Python环境下的包、模块的导入名列表。"""
+        pkg_import_names = []
+        if not self.env_path:
+            return pkg_import_names
+        sys_paths = self.__read_sys_path()
+        for sys_path in sys_paths:
+            for names in self.__from_sys_path(sys_path).values():
+                pkg_import_names.extend(names)
+        return pkg_import_names
+
+    def query_import(self, name, *, case=True):
+        """
+        查询该环境下指定的包、模块对应的用于导入的名称。
+        :param name: str, 要查询的包名或模块名。
+        :param case: bool, 查询时是否对name大小写敏感。
+        :return: list[str...], 该包、模块的导入名列表。
+        """
+        if not isinstance(name, str):
+            raise TypeError('参数name数据类型错误，数据类型应为str。')
+        if not case:
+            name = name.lower()
+        for sys_path in self.__read_sys_path():
+            if case:
+                name_dict = self.__from_sys_path(sys_path)
+            else:
+                name_dict = dict(
+                    (k.lower(), v)
+                    for k, v in self.__from_sys_path(sys_path).items()
+                )
+            if name in name_dict:
+                return name_dict[name]
+        return []
+
+    def __read_sys_path(self):
+        """读取目标Python环境的sys.path属性。"""
+        if not self.env_path:
+            return []
+        source_code = 'import sys;print(sys.path)'
+        script_path = os.path.join(self.cur_d, '__syspath.py')
+        if not os.path.isfile(script_path):
+            if not os.path.exists(self.cur_d):
+                try:
+                    os.makedirs(self.cur_d)
+                except Exception:
+                    pass
+            try:
+                with open(script_path, 'wt', encoding='utf-8') as script:
+                    script.write(source_code)
+            except Exception:
+                return []
+        result, retcode = _execute_cmd(
+            (os.path.join(self.env_path, 'python.exe'), script_path),
+            '',
+            True,
+            True,
+            None,
+        )
+        if retcode or not result:
+            return []
+        try:
+            return eval(result)
+        except Exception:
+            return []
+
+    @staticmethod
+    def __from_sys_path(pkg_dir):
+        """从sys.path列表中的一个路径获取可用于导入的模块、包名。"""
+        modules_and_pkgs, names_used_for_import = [], {}
+        try:
+            modules_and_pkgs.extend(os.listdir(pkg_dir))
+        except Exception:
+            return names_used_for_import
+        py_modules, py_packages = [], []
+        for mod_pkg in modules_and_pkgs:
+            _path = os.path.join(pkg_dir, mod_pkg)
+            if os.path.isfile(_path):
+                py_modules.append(mod_pkg)
+            elif os.path.isdir(_path):
+                py_packages.append(mod_pkg)
+        pattern_f = re.compile(r'^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$')
+        pattern_d = re.compile(
+            r'^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$'
+        )
+        for package in py_packages:
+            match_object_d = pattern_d.match(package)
+            if not match_object_d:
+                continue
+            top_level = os.path.join(pkg_dir, package, 'top_level.txt')
+            if not os.path.isfile(top_level):
+                continue
+            try:
+                with open(top_level, 'rt') as top_level:
+                    lines = top_level.readlines()
+            except Exception:
+                continue
+            import_names = [os.path.basename(l.strip()) for l in lines]
+            pkg_name = match_object_d.group(1)
+            if pkg_name in names_used_for_import:
+                names_used_for_import[pkg_name].extend(import_names)
+            else:
+                names_used_for_import.setdefault(pkg_name, import_names)
+        for module in py_modules:
+            match_object_f = pattern_f.match(module)
+            if not match_object_f:
+                continue
+            imp_name = match_object_f.group(1)
+            # 单文件模块形式下，导入名和剔除后缀后的模块名相同(后缀不仅指扩展名)
+            if imp_name in names_used_for_import:
+                continue
+            names_used_for_import.setdefault(imp_name, [imp_name])
+        return names_used_for_import
