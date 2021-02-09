@@ -361,8 +361,10 @@ class PyEnv:
             return []
         self.__check_timeout_num(timeout)
         cmds = [self.pip_path(), *_pipcmds['outdated']]
-        outdated_pkgs_info, tips = [], '正在检查更新'
-        result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
+        outdated_pkgs_info = []
+        result, retcode = _execute_cmd(
+            cmds, '正在检查更新', no_output, no_tips, timeout
+        )
         if retcode or not result:
             return outdated_pkgs_info
         result = result.strip().split('\n')

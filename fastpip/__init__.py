@@ -2,7 +2,7 @@
 
 license = ''' MIT License
 
-Copyright (c) 2020 hrpzcf / hrp < hrpzcf@foxmail.com >
+Copyright (c) 2020-2021 hrp/hrpzcf <hrpzcf@foxmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ __all__ = [
 ]
 
 NAME = 'fastpip'
-VERSION = '0.4.0'
+VERSION = '0.4.1'
 AUTHOR = 'hrpzcf'
 EMAIL = 'hrpzcf@foxmail.com'
 WEBSITE = 'https://gitee.com/hrpzcf/fastpip'
