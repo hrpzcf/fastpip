@@ -302,10 +302,12 @@ class PyEnv:
     @staticmethod
     def __clean_info(string):
         """清理pip包名列表命令的无关输出。"""
-        result = re.search(r'Package\s+Version\n[-\s]+\n(.+)', string, re.S)
-        if not result:
+        preprocessed = re.search(
+            r'Package\s+Version\s*\n[-\s]+\n(.+)', string, re.S
+        )
+        if not preprocessed:
             return []
-        return re.findall(r'^\S+\s+\S+$', result.group(1), re.M)
+        return re.findall(r'^(\S+)\s+(\S+)\s*$', preprocessed.group(1), re.M)
 
     def pkgs_info(self, *, no_output=True, no_tips=True, timeout=None):
         """
@@ -318,16 +320,13 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        info_list, tips = [], '正在获取(包名, 版本)列表'
         cmds = [self.pip_path(), *_pipcmds['list']]
-        result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
+        result, retcode = _execute_cmd(
+            cmds, '正在获取(包名, 版本)列表', no_output, no_tips, timeout
+        )
         if retcode or not result:
-            return info_list
-        info = self.__clean_info(result)
-        for pkg in info:
-            pkg = pkg.split(' ')
-            info_list.append((pkg[0], pkg[-1]))
-        return info_list
+            return []
+        return self.__clean_info(result)
 
     def pkg_names(self, *, no_output=True, no_tips=True, timeout=None):
         """
@@ -340,16 +339,13 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        name_list, tips = [], '正在获取包名列表'
         cmds = [self.pip_path(), *_pipcmds['list']]
-        result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
+        result, retcode = _execute_cmd(
+            cmds, '正在获取包名列表', no_output, no_tips, timeout
+        )
         if retcode or not result:
-            return name_list
-        info = self.__clean_info(result)
-        for pkg in info:
-            pkg = pkg.split(' ')
-            name_list.append(pkg[0])
-        return name_list
+            return []
+        return [n for n, _ in self.__clean_info(result)]
 
     def outdated(self, *, no_output=True, no_tips=True, timeout=30):
         """
