@@ -553,7 +553,7 @@ class PyEnv:
                 search_results.append((*name_and_version, summary))
         return search_results
 
-    def names_for_import(self):
+    def imports(self):
         """获取该Python环境下的包、模块的导入名列表。"""
         pkg_import_names = []
         if not self.env_path:
@@ -564,7 +564,7 @@ class PyEnv:
                 pkg_import_names.extend(names)
         return pkg_import_names
 
-    def query_import(self, name, *, case=True):
+    def query(self, name, *, case=True):
         """
         查询该环境下指定的包、模块对应的用于导入的名称。
         :param name: str, 要查询的包名或模块名。
