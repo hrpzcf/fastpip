@@ -68,7 +68,7 @@ _pipcmds = {
     'info': ('-V',),
     'list': ('list',),
     'outdated': ('list', '--outdated'),
-    'pip_upgrade': ('install', 'pip', '-U'),
+    'pip_upgrade': ('-m', 'pip', 'install', '-U', 'pip'),
     'set_index': ('config', 'set', 'global.index-url'),
     'get_index': ('config', 'list'),
     'install': ('install',),
@@ -405,16 +405,18 @@ class PyEnv:
         :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
         :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
-        :return: bool, 命令退出状态，True表示升级成功，False表示设置失败。
+        :return: tuple[tuple['pip'], bool], 返回(('pip',), 退出状态)元组，退出状态为True表示升级成功，False表示失败。
         """
         if not self.pip_ready:
             return False
         self.__check_timeout_num(timeout)
-        tips = '正在升级pip'
-        cmds = [self.pip_path(), *_pipcmds['pip_upgrade']]
+        cmds = [self.interpreter, *_pipcmds['pip_upgrade']]
         if index_url:
             cmds.extend(('-i', index_url))
-        return not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
+        result, retcode = _execute_cmd(
+            cmds, '正在升级pip', no_output, no_tips, timeout
+        )
+        return (('pip',), not retcode)
 
     def set_global_index(self, index_url=index_urls['opentuna']):
         """
