@@ -177,10 +177,17 @@ class PyEnv:
 
     @property
     def env_path(self):
-        """代表该Python环境目录路径的属性，有可能是空字符串。"""
+        """代表该Python环境目录路径的属性，环境路径无效时是空字符串。"""
         # 实时检查Python环境路径
         self.__env_path = self.__check(self.__env_path)
         return self.__env_path
+
+    @property
+    def interpreter(self):
+        """代表当前环境的Python解释器路径的属性，环境路径无效时是空字符串。"""
+        if not self.env_path:
+            return ''
+        return os.path.join(self.env_path, 'python.exe')
 
     def __str__(self):
         location = self.env_path or 'unknown location'
@@ -193,10 +200,7 @@ class PyEnv:
 
     @property
     def pip_ready(self):
-        """
-        代表该Python环境中pip是否已安装的属性。
-        值为True为pip已安装，反之False为未安装。
-        """
+        """代表该Python环境中pip是否已安装的属性。值为True代表pip已安装，反之False代表未安装。"""
         return bool(self.pip_path())
 
     @staticmethod
