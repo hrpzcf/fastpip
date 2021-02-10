@@ -66,13 +66,13 @@ index_urls = {
 # pip 部分命令
 _pipcmds = {
     'info': ('-V',),
-    'list': ('list',),
-    'outdated': ('list', '--outdated'),
+    'list': ('-m', 'pip', 'list'),
+    'outdated': ('-m', 'pip', 'list', '--outdated'),
     'pip_upgrade': ('-m', 'pip', 'install', '-U', 'pip'),
     'set_index': ('config', 'set', 'global.index-url'),
     'get_index': ('config', 'list'),
-    'install': ('install',),
-    'uninstall': ('uninstall', '-y'),
+    'install': ('-m', 'pip', 'install'),
+    'uninstall': ('-m', 'pip', 'uninstall', '-y'),
     'search': ('search',),
 }
 
@@ -324,7 +324,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.pip_path(), *_pipcmds['list']]
+        cmds = [self.interpreter, *_pipcmds['list']]
         result, retcode = _execute_cmd(
             cmds, '正在获取(包名, 版本)列表', no_output, no_tips, timeout
         )
@@ -343,7 +343,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.pip_path(), *_pipcmds['list']]
+        cmds = [self.interpreter, *_pipcmds['list']]
         result, retcode = _execute_cmd(
             cmds, '正在获取包名列表', no_output, no_tips, timeout
         )
@@ -364,7 +364,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.pip_path(), *_pipcmds['outdated']]
+        cmds = [self.interpreter, *_pipcmds['outdated']]
         outdated_pkgs_info = []
         result, retcode = _execute_cmd(
             cmds, '正在检查更新', no_output, no_tips, timeout
@@ -477,12 +477,12 @@ class PyEnv:
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数数据类型应为字符串。')
         self.__check_timeout_num(timeout)
-        tips = '正在安装{}'.format(','.join(names))
-        cmds = [self.pip_path(), *_pipcmds['install'], *names]
-        if index_url:
-            cmds.extend(('-i', index_url))
+        tips = '正在安装{}'.format(', '.join(names))
+        cmds = [self.interpreter, *_pipcmds['install'], *names]
         if upgrade:
             cmds.append('-U')
+        if index_url:
+            cmds.extend(('-i', index_url))
         return (
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
@@ -506,8 +506,8 @@ class PyEnv:
         if not all(isinstance(s, str) for s in names):
             raise 数据类型异常('包名参数的数据类型应为字符串。')
         self.__check_timeout_num(timeout)
-        tips = '正在卸载{}'.format(','.join(names))
-        cmds = [self.pip_path(), *_pipcmds['uninstall'], *names]
+        tips = '正在卸载{}'.format(', '.join(names))
+        cmds = [self.interpreter, *_pipcmds['uninstall'], *names]
         return (
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
