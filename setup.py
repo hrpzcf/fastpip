@@ -4,13 +4,14 @@ import os
 from setuptools import find_packages, setup
 from fastpip import AUTHOR, EMAIL, NAME, VERSION, WEBSITE
 
-description = '一个对pip命令行操作进行简单封装的包，可以在Python3源代码中实现方便的pip包管理操作。'
-if os.path.exists('README.md'):
-    try:
-        with open('README.md', 'r', encoding='utf-8') as mdfile:
-            long_description = mdfile.read()
-    except Exception:
-        long_description = description
+description = '一个对pip命令进行简单封装的包，可以在Python3源代码中实现方便的pip包管理操作。'
+
+try:
+    with open('README.md', 'r', encoding='utf-8') as mdfile:
+        long_description = mdfile.read()
+except Exception:
+    long_description = description
+
 setup(
     name=NAME,
     version=VERSION,
