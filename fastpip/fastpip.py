@@ -643,6 +643,14 @@ class PyEnv:
             r'^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$'
         )
         for package in py_packages:
+            try:
+                if '__init__.py' in os.listdir(os.path.join(pkg_dir, package)):
+                    if package not in names_used_for_import:
+                        # 有__init__.py文件的目录，其导入名即为目录名
+                        names_used_for_import.setdefault(package, [package])
+                    continue
+            except Exception:
+                pass
             match_object_d = pattern_d.match(package)
             if not match_object_d:
                 continue
