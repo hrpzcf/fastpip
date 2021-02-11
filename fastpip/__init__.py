@@ -32,11 +32,19 @@ from .errors import (
 )
 from .fastpip import PyEnv, all_py_paths, cur_py_path, index_urls
 
+NAME = 'fastpip'
+version = 0, 4, 3
+AUTHOR = 'hrpzcf'
+EMAIL = 'hrpzcf@foxmail.com'
+WEBSITE = 'https://gitee.com/hrpzcf/fastpip'
+VERSION = '.'.join(map(str, version))
+
 __all__ = [
     'PyEnv',
     'all_py_paths',
     'cur_py_path',
     'index_urls',
+    'version',
     '参数值异常',
     '数据类型异常',
     '文件查找异常',
@@ -44,9 +52,3 @@ __all__ = [
     '适用平台异常',
     'PyEnvNotFound',
 ]
-
-NAME = 'fastpip'
-VERSION = '0.4.3'
-AUTHOR = 'hrpzcf'
-EMAIL = 'hrpzcf@foxmail.com'
-WEBSITE = 'https://gitee.com/hrpzcf/fastpip'

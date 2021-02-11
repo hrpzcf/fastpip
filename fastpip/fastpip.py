@@ -54,6 +54,7 @@ _STARTUP.wShowWindow = SW_HIDE
 
 # 预设镜像源：
 index_urls = {
+    'pypi': 'https://pypi.org/simple/',  # 官方源
     'aliyun': 'https://mirrors.aliyun.com/pypi/simple/',  # 阿里源
     'tencent': 'https://mirrors.cloud.tencent.com/pypi/simple',  # 腾讯源
     'douban': 'https://pypi.doubanio.com/simple/',  # 豆瓣源
