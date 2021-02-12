@@ -65,16 +65,17 @@ index_urls = {
 }
 
 # pip 部分命令
+_PF = ('-m', 'pip')
 _pipcmds = {
-    'info': ('-V',),
-    'list': ('-m', 'pip', 'list'),
-    'outdated': ('-m', 'pip', 'list', '--outdated'),
-    'pip_upgrade': ('-m', 'pip', 'install', '-U', 'pip'),
-    'set_index': ('config', 'set', 'global.index-url'),
-    'get_index': ('config', 'list'),
-    'install': ('-m', 'pip', 'install'),
-    'uninstall': ('-m', 'pip', 'uninstall', '-y'),
-    'search': ('search',),
+    'info': (*_PF, '-V'),
+    'list': (*_PF, 'list'),
+    'outdated': (*_PF, 'list', '--outdated'),
+    'pip_upgrade': (*_PF, 'install', '-U', 'pip'),
+    'set_index': (*_PF, 'config', 'set', 'global.index-url'),
+    'get_index': (*_PF, 'config', 'list'),
+    'install': (*_PF, 'install'),
+    'uninstall': (*_PF, 'uninstall', '-y'),
+    'search': (*_PF, 'search'),
 }
 
 
@@ -291,7 +292,7 @@ class PyEnv:
         """
         if not self.pip_ready:
             return
-        cmds = [self.pip_path(), *_pipcmds['info']]
+        cmds = [self.interpreter, *_pipcmds['info']]
         result, retcode = _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
         )
@@ -429,7 +430,7 @@ class PyEnv:
             return False
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
-        cmds = [self.pip_path(), *_pipcmds['set_index'], index_url]
+        cmds = [self.interpreter, *_pipcmds['set_index'], index_url]
         return not _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
         )[1]
@@ -441,7 +442,7 @@ class PyEnv:
         """
         if not self.pip_ready:
             return ''
-        cmds = [self.pip_path(), *_pipcmds['get_index']]
+        cmds = [self.interpreter, *_pipcmds['get_index']]
         result, retcode = _execute_cmd(
             cmds, '', no_output=True, no_tips=True, timeout=None
         )
@@ -533,7 +534,7 @@ class PyEnv:
         :return: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
         """
         warn(
-            '\n由于pip即将移除search命令，所以fastpip也即将在下个版本移除此方法，请尽快更新您的源代码。',
+            '\n由于pip的search命令已失效且即将被移除，所以fastpip也即将在下个版本移除此方法，请尽快更新您的源代码。',
             stacklevel=2,
         )
         if not self.pip_ready or not keywords:
@@ -544,7 +545,7 @@ class PyEnv:
             raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
         self.__check_timeout_num(timeout)
         search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
-        cmds = [self.pip_path(), *_pipcmds['search'], *keywords]
+        cmds = [self.interpreter, *_pipcmds['search'], *keywords]
         result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
         if retcode:
             return search_results
@@ -678,3 +679,6 @@ class PyEnv:
                 continue
             names_used_for_import.setdefault(imp_name, [imp_name])
         return names_used_for_import
+
+    def download(self, *names, **kwargs):
+        ...
