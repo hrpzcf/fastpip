@@ -130,7 +130,7 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     global _SHOW_RUNNING_TIPS
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
-    exec_f = Popen(
+    process = Popen(
         cmds,
         stdout=PIPE,
         stderr=STDOUT,
@@ -138,15 +138,15 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
         startupinfo=_STARTUP,
     )
     try:
-        exec_out = exec_f.communicate(timeout=timeout)
+        out_put = process.communicate(timeout=timeout)
     except Exception:
-        exec_out = '', -1
+        out_put = '', -1
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
     if not no_output:
-        print(exec_out[0], end='')
-    return exec_out[0], exec_f.returncode
+        print(out_put[0], end='')
+    return out_put[0], process.returncode
 
 
 def _fix_bad_code(string):
@@ -244,11 +244,7 @@ class PyEnv:
             except Exception:
                 return information.format('0.0.0', '?')
         result, retcode = _execute_cmd(
-            (os.path.join(self.env_path, 'python.exe'), script_path),
-            '',
-            True,
-            True,
-            None,
+            (self.interpreter, script_path), '', True, True, None
         )
         if retcode or not result:
             return information.format('0.0.0', '?')
@@ -374,21 +370,15 @@ class PyEnv:
         if retcode or not result:
             return outdated_pkgs_info
         result = result.strip().split('\n')
-        pattern1 = r'^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$'
-        pattern2 = r'^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$'
+        pt1 = r'^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$'
+        pt2 = r'^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$'
         for pkg_ver_info in result:
-            res = re.match(
-                pattern1,
-                pkg_ver_info,
-            )
+            res = re.match(pt1, pkg_ver_info)
             if res:
                 outdated_pkgs_info.append(res.groups())
         if not outdated_pkgs_info:
             for pkg_ver_info in result:
-                res = re.match(
-                    pattern2,
-                    pkg_ver_info,
-                )
+                res = re.match(pt2, pkg_ver_info)
                 if res:
                     outdated_pkgs_info.append(res.groups())
         return outdated_pkgs_info
@@ -606,16 +596,12 @@ class PyEnv:
                 except Exception:
                     pass
             try:
-                with open(script_path, 'wt', encoding='utf-8') as script:
-                    script.write(source_code)
+                with open(script_path, 'wt', encoding='utf-8') as py_file:
+                    py_file.write(source_code)
             except Exception:
                 return []
         result, retcode = _execute_cmd(
-            (os.path.join(self.env_path, 'python.exe'), script_path),
-            '',
-            True,
-            True,
-            None,
+            (self.interpreter, script_path), '', True, True, None
         )
         if retcode or not result:
             return []
