@@ -8,30 +8,11 @@
 
 <br />
 
-方法一：用 pip 命令安装：
+> 打开命令窗口或PowerShell窗口，使用 pip 命令安装：
 
+```cmd
+py -m pip install -U fastpip
 ```
-pip install -U fastpip
-```
-
-安装完成。
-
-<br /><br />
-
-方法二：从 Gitee 安装最新开发版本：
-
-1. 首先安装依赖库psutil和chardet:
-
-    ```cmd
-    pip install psutil
-    pip install chardet
-    ```
-
-2. 再安装fastpip:
-
-    ```cmd
-    pip install -U git+https://gitee.com/hrpzcf/fastpip@dev
-    ```
 
 <br /><br />
 
