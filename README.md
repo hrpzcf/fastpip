@@ -18,12 +18,13 @@ pip install -U fastpip
 
 <br /><br />
 
-方法二：从 Gitee 安装最新开发版本（推荐）：
+方法二：从 Gitee 安装最新开发版本：
 
-1. 首先安装依赖库psutil:
+1. 首先安装依赖库psutil和chardet:
 
     ```cmd
     pip install psutil
+    pip install chardet
     ```
 
 2. 再安装fastpip:
