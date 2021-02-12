@@ -130,23 +130,24 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     global _SHOW_RUNNING_TIPS
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
-    process = Popen(
-        cmds,
-        stdout=PIPE,
-        stderr=STDOUT,
-        universal_newlines=True,
-        startupinfo=_STARTUP,
-    )
     try:
-        out_put = process.communicate(timeout=timeout)
+        process = Popen(
+            cmds,
+            stdout=PIPE,
+            stderr=STDOUT,
+            universal_newlines=True,
+            startupinfo=_STARTUP,
+        )
+        out_put = process.communicate(timeout=timeout)[0]
+        return_code = process.returncode
     except Exception:
-        out_put = '', -1
+        out_put, return_code = '', 1
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
     if not no_output:
-        print(out_put[0], end='')
-    return out_put[0], process.returncode
+        print(out_put, end='')
+    return out_put, return_code
 
 
 def _fix_bad_code(string):
