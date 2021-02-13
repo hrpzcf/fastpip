@@ -620,25 +620,27 @@ class PyEnv:
         except Exception:
             return names_used_for_import
         py_modules, py_packages = [], []
+        pattern_d = re.compile(
+            r'^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$'
+        )
+        pattern_t = re.compile(r'^[a-zA-Z_]?[0-9a-zA-Z_]+')
+        pattern_f = re.compile(r'^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$')
         for mod_pkg in modules_and_pkgs:
             _path = os.path.join(pkg_dir, mod_pkg)
             if os.path.isfile(_path):
                 py_modules.append(mod_pkg)
             elif os.path.isdir(_path):
                 py_packages.append(mod_pkg)
-        pattern_f = re.compile(r'^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$')
-        pattern_d = re.compile(
-            r'^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$'
-        )
         for package in py_packages:
             try:
-                if '__init__.py' in os.listdir(os.path.join(pkg_dir, package)):
-                    if package not in names_used_for_import:
-                        # 有__init__.py文件的目录，其导入名即为目录名
-                        names_used_for_import.setdefault(package, [package])
-                    continue
+                file_list = os.listdir(os.path.join(pkg_dir, package))
             except Exception:
-                pass
+                continue
+            if '__init__.py' in file_list:
+                if package not in names_used_for_import:
+                    # 有__init__.py文件的目录，其导入名即为目录名
+                    names_used_for_import[package] = [package]
+                continue
             match_object_d = pattern_d.match(package)
             if not match_object_d:
                 continue
@@ -650,12 +652,17 @@ class PyEnv:
                     lines = top_level.readlines()
             except Exception:
                 continue
-            import_names = [os.path.basename(l.strip()) for l in lines]
+            import_names = []
+            for l in lines:
+                m_obj_t = pattern_t.match(os.path.basename(l.strip()))
+                if not m_obj_t:
+                    continue
+                import_names.append(m_obj_t.group())
             pkg_name = match_object_d.group(1)
-            if pkg_name in names_used_for_import:
-                names_used_for_import[pkg_name].extend(import_names)
+            if pkg_name not in names_used_for_import:
+                names_used_for_import[pkg_name] = import_names
             else:
-                names_used_for_import.setdefault(pkg_name, import_names)
+                names_used_for_import[pkg_name].extend(import_names)
         for module in py_modules:
             match_object_f = pattern_f.match(module)
             if not match_object_f:
@@ -664,7 +671,7 @@ class PyEnv:
             # 单文件模块形式下，导入名和剔除后缀后的模块名相同(后缀不仅指扩展名)
             if imp_name in names_used_for_import:
                 continue
-            names_used_for_import.setdefault(imp_name, [imp_name])
+            names_used_for_import[imp_name] = [imp_name]
         return names_used_for_import
 
     def download(self, *names, **kwargs):
