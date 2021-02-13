@@ -25,6 +25,11 @@ class PyEnvNotFound(Exception):
     pass
 
 
+class PathParamError(Exception):
+    """路径参数异常"""
+    pass
+
+
 __all__ = [
     '目录查找异常',
     '文件查找异常',
@@ -32,5 +37,5 @@ __all__ = [
     '适用平台异常',
     '参数值异常',
     'PyEnvNotFound',
+    'PathParamError',
 ]
-
