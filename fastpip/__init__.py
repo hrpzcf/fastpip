@@ -26,7 +26,7 @@ from .errors import *
 from .fastpip import PyEnv, all_py_paths, cur_py_path, index_urls
 
 NAME = 'fastpip'
-version = 0, 4, 4
+version = 0, 5, 0
 AUTHOR = 'hrpzcf'
 EMAIL = 'hrpzcf@foxmail.com'
 WEBSITE = 'https://gitee.com/hrpzcf/fastpip'
