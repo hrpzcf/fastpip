@@ -183,6 +183,20 @@ class PyEnv:
         raise PathParamError('路径参数类型错误。')
 
     @property
+    def path(self):
+        """
+        代表PyEnv类实例化时所传入的Python环境的绝对路径。
+        可重新赋值一个路径(字符串)以改变PyEnv类实例所指的Python环境。
+        """
+        return os.path.abspath(self.__env_path)
+
+    @path.setter
+    def path(self, _path):
+        if not isinstance(_path, str):
+            raise PathParamError('路径参数类型错误。')
+        self.__env_path = os.path.normpath(_path)
+
+    @property
     def env_path(self):
         """
         代表该Python环境目录路径的属性，该属性在获取的时候进行实时检查。
