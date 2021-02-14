@@ -42,7 +42,7 @@ from time import sleep
 from warnings import warn
 
 from .errors import *
-from .findpypath import all_py_paths, cur_py_path
+from .findpath import all_py_paths, cur_py_path
 
 if os.name != 'nt':
     raise 适用平台异常('运行于不支持的操作系统。')
@@ -64,18 +64,17 @@ index_urls = {
     'pypi': 'https://pypi.org/simple/',  # 官方源
 }
 
-# pip 部分命令
-_PF = ('-m', 'pip')
-_pipcmds = {
-    'info': (*_PF, '-V'),
-    'list': (*_PF, 'list'),
-    'outdated': (*_PF, 'list', '--outdated'),
-    'pip_upgrade': (*_PF, 'install', '-U', 'pip'),
-    'set_index': (*_PF, 'config', 'set', 'global.index-url'),
-    'get_index': (*_PF, 'config', 'list'),
-    'install': (*_PF, 'install'),
-    'uninstall': (*_PF, 'uninstall', '-y'),
-    'search': (*_PF, 'search'),
+# 部分pip命令
+_PREFIX = ('-m', 'pip')
+_PIPCMDS = {
+    'INSTALL': (*_PREFIX, 'install'),
+    'UNINSTALL': (*_PREFIX, 'uninstall', '-y'),
+    'LIST': (*_PREFIX, 'list'),
+    'INFO': (*_PREFIX, '-V'),
+    'OUTDATED': (*_PREFIX, 'list', '--outdated'),
+    'PIPUP': (*_PREFIX, 'install', '-U', 'pip'),
+    'SETINDEX': (*_PREFIX, 'config', 'set', 'global.index-url'),
+    'GETINDEX': (*_PREFIX, 'config', 'list'),
 }
 
 
@@ -317,7 +316,7 @@ class PyEnv:
         """
         if not self.pip_ready:
             return
-        cmds = [self.interpreter, *_pipcmds['info']]
+        cmds = [self.interpreter, *_PIPCMDS['INFO']]
         result, retcode = _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
         )
@@ -354,7 +353,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_pipcmds['list']]
+        cmds = [self.interpreter, *_PIPCMDS['LIST']]
         result, retcode = _execute_cmd(
             cmds, '正在获取(包名, 版本)列表', no_output, no_tips, timeout
         )
@@ -373,7 +372,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_pipcmds['list']]
+        cmds = [self.interpreter, *_PIPCMDS['LIST']]
         result, retcode = _execute_cmd(
             cmds, '正在获取包名列表', no_output, no_tips, timeout
         )
@@ -394,7 +393,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_pipcmds['outdated']]
+        cmds = [self.interpreter, *_PIPCMDS['OUTDATED']]
         outdated_pkgs_info = []
         result, retcode = _execute_cmd(
             cmds, '正在检查更新', no_output, no_tips, timeout
@@ -434,7 +433,7 @@ class PyEnv:
         if not self.pip_ready:
             return False
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_pipcmds['pip_upgrade']]
+        cmds = [self.interpreter, *_PIPCMDS['PIPUP']]
         if index_url:
             cmds.extend(('-i', index_url))
         result, retcode = _execute_cmd(
@@ -452,7 +451,7 @@ class PyEnv:
             return False
         if not isinstance(index_url, str):
             raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
-        cmds = [self.interpreter, *_pipcmds['set_index'], index_url]
+        cmds = [self.interpreter, *_PIPCMDS['SETINDEX'], index_url]
         return not _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
         )[1]
@@ -464,7 +463,7 @@ class PyEnv:
         """
         if not self.pip_ready:
             return ''
-        cmds = [self.interpreter, *_pipcmds['get_index']]
+        cmds = [self.interpreter, *_PIPCMDS['GETINDEX']]
         result, retcode = _execute_cmd(
             cmds, '', no_output=True, no_tips=True, timeout=None
         )
@@ -503,7 +502,7 @@ class PyEnv:
             raise 数据类型异常('镜像源地址参数数据类型应为字符串。')
         self.__check_timeout_num(timeout)
         tips = '正在安装{}'.format(', '.join(names))
-        cmds = [self.interpreter, *_pipcmds['install'], *names]
+        cmds = [self.interpreter, *_PIPCMDS['INSTALL'], *names]
         if upgrade:
             cmds.append('-U')
         if index_url:
@@ -532,7 +531,7 @@ class PyEnv:
             raise 数据类型异常('包名参数的数据类型应为字符串。')
         self.__check_timeout_num(timeout)
         tips = '正在卸载{}'.format(', '.join(names))
-        cmds = [self.interpreter, *_pipcmds['uninstall'], *names]
+        cmds = [self.interpreter, *_PIPCMDS['UNINSTALL'], *names]
         return (
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],

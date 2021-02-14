@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 
 from psutil import disk_partitions
 
 
-def _possible_location():
+def _common_location():
     """生成各磁盘上的常见的Python安装目录列表。"""
     most_possible_path = []
     common_dir = (
@@ -14,17 +13,18 @@ def _possible_location():
         'Program Files (x86)',
         os.path.join('Anaconda3', 'envs'),
     )
+    most_possible_path.append(os.path.expanduser('~'))
     disk_parts = [dp.device for dp in disk_partitions()]
+    most_possible_path.extend(disk_parts)
     for dp in disk_parts:
         for cd in common_dir:
             full_path = os.path.join(dp, cd)
-            if os.path.exists(full_path):
-                most_possible_path.append(full_path)
-    most_possible_path.extend(disk_parts)
-    most_possible_path.append(os.path.expanduser('~'))
-    full_path = os.path.join(os.getenv('LOCALAPPDATA'), 'Programs')
-    if os.path.exists(full_path):
-        most_possible_path.append(full_path)
+            if not os.path.isdir(full_path):
+                continue
+            most_possible_path.append(full_path)
+    appd = os.path.join(os.getenv('LOCALAPPDATA'), 'Programs')
+    if os.path.exists(appd):
+        most_possible_path.append(appd)
     return most_possible_path
 
 
@@ -68,34 +68,35 @@ def cur_py_path():
 def all_py_paths():
     """
     返回存在Python解释器的目录。
-    如果在可能的安装目录中的子文件夹里找不到解释器，那就再深入一层目录，到此为止。
+    如果在可能的安装目录中的子文件夹里找不到解释器，只再深入一层目录寻找。
     """
-    possible_location, deeper_location = [], []
-    paths_py_exists = _paths_in_PATH()
-    for path in _possible_location():
+    common_location, deeper_location = [], []
+    interpreter_exists = _paths_in_PATH()
+    for _path in _common_location():
         try:
-            dirs_and_files = os.listdir(path)
+            dirs_and_files = os.listdir(_path)
         except Exception:
             continue
         for item in dirs_and_files:
-            possible_dir = os.path.join(path, item)
-            if os.path.isdir(possible_dir):
-                possible_location.append(possible_dir)
-    for possible_dir in possible_location:
+            possible_d = os.path.join(_path, item)
+            if os.path.isdir(possible_d):
+                common_location.append(possible_d)
+    for possible_d in common_location:
         try:
-            dirs_and_files = os.listdir(possible_dir)
+            dirs_and_files = os.listdir(possible_d)
         except Exception:
             continue
-        possible_dir = os.path.normpath(possible_dir)
+        possible_d = os.path.normpath(possible_d)
         if 'python.exe' in dirs_and_files:
-            if possible_dir in paths_py_exists:
+            if possible_d in interpreter_exists:
                 continue
-            paths_py_exists.append(possible_dir)
+            interpreter_exists.append(possible_d)
         else:
-            for deeper in dirs_and_files:
-                path_deeper = os.path.join(possible_dir, deeper)
-                if os.path.isdir(path_deeper):
-                    deeper_location.append(path_deeper)
+            for deep in dirs_and_files:
+                path_deeper = os.path.join(possible_d, deep)
+                if not os.path.isdir(path_deeper):
+                    continue
+                deeper_location.append(path_deeper)
     for deeper_path in deeper_location:
         try:
             dirs_and_files = os.listdir(deeper_path)
@@ -104,7 +105,7 @@ def all_py_paths():
         deeper_path = os.path.normpath(deeper_path)
         if (
             'python.exe' in dirs_and_files
-            and deeper_path not in paths_py_exists
+            and deeper_path not in interpreter_exists
         ):
-            paths_py_exists.append(deeper_path)
-    return paths_py_exists
+            interpreter_exists.append(deeper_path)
+    return interpreter_exists
