@@ -54,14 +54,14 @@ _STARTUP.wShowWindow = SW_HIDE
 
 # 预设镜像源：
 index_urls = {
-    'pypi': 'https://pypi.org/simple/',  # 官方源
     'aliyun': 'https://mirrors.aliyun.com/pypi/simple/',  # 阿里源
     'tencent': 'https://mirrors.cloud.tencent.com/pypi/simple',  # 腾讯源
     'douban': 'https://pypi.doubanio.com/simple/',  # 豆瓣源
-    'huawei': 'https://mirrors.huaweicloud.com/repository/pypi/simple',  # 华为源
     'opentuna': 'https://opentuna.cn/pypi/web/simple',  # 清华源
     'tsinghua': 'https://pypi.tuna.tsinghua.edu.cn/simple',  # 清华源
+    'huawei': 'https://mirrors.huaweicloud.com/repository/pypi/simple',  # 华为源
     'netease': 'https://mirrors.163.com/pypi/simple/',  # 网易源
+    'pypi': 'https://pypi.org/simple/',  # 官方源
 }
 
 # pip 部分命令
@@ -79,8 +79,8 @@ _pipcmds = {
 }
 
 
-class _PipInfo:
-    """PipInfo类，供内部使用。"""
+class PipInformation:
+    """PipInformation类仅供内部使用。"""
 
     def __init__(self, pipver, path, pyver):
         self.__path = path
@@ -162,75 +162,97 @@ def _fix_bad_code(string):
 
 class PyEnv:
     """
-    Python环境类，此类接受一个指向Python解释器所在目录的路径参数(字符串)。
-    此类实例的所有pip操作方法都将基于该路径参数所指的Python环境，不会对系统中其他Python环境产生影响。
-    PyEnv类无参数实例化时，默认使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径。
-    如果系统环境变量PATH中没有找到Python目录路径，则将路径属性env_path设置为空字符串。
-    PyEnv类有参数实例化时，如果参数path数据类型不是"str"或所指的路径中没找到Python解释器，则将路径属性env_path设置为空字符串。
-    检查PyEnv实例是否是一个指向正确Python环境的有效
+    Python环境类。
+    此类实例的绝大多数方法效果都将作用于该实例所指的Python环境，不对其他环境产生影响。
+    只有一个例外：使用set_global_index方法设置本机pip全局镜像源地址，对所有环境产生作用。
     """
 
     cur_d = os.path.dirname(os.path.abspath(__file__))
 
-    def __init__(self, path=''):
-        if path == '':
-            self.__env_path = cur_py_path()
-        else:
-            self.__env_path = self.__check(path)
+    def __init__(self, path=None):
+        """
+        PyEnv类初始化方法。
+        :param path: str or None, 一个指向Python解释器所在目录的路径。
+        PyEnv类无参数实例化时或参数值为None实例化时，使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径，-
+        如果系统环境变量PATH中没有找到Python目录路径，则将路径属性env_path设置为空字符串。
+        PyEnv类有参数实例化时，如果参数path数据类型不是"str"或"None"则抛出PathParamError异常。
+        """
+        self.__env_path = self.__init_path(path)
+
+    @staticmethod
+    def __init_path(_path):
+        """
+        初始化Python路径。
+        如果路径参数不是字符串，则抛出PathParamError异常。
+        该异常位于fastpip.errors，也可用from fastpip import *一并导入。
+        """
+        if isinstance(_path, str):
+            return _path
+        if _path is None:
+            return cur_py_path()
+        raise PathParamError('路径参数类型错误。')
 
     @property
     def env_path(self):
-        """代表该Python环境目录路径的属性，环境路径无效时是空字符串。"""
-        # 实时检查Python环境路径
-        self.__env_path = self.__check(self.__env_path)
-        return self.__env_path
+        """
+        代表该Python环境目录路径的属性，该属性在获取的时候进行实时检查。
+        当PyEnv实例所指的Python环境无效(例如环境被卸载)时该属性值是空字符串，
+        当环境恢复有效后，该属性值是该实例所指Python环境的路径(字符串)。
+        """
+        return self.__check(self.__env_path)
 
     @property
     def interpreter(self):
-        """代表当前环境的Python解释器路径的属性，环境路径无效时是空字符串。"""
-        if not self.env_path:
+        """
+        代表当前环境的Python解释器(python.exe)路径的属性。
+        PyEnv实例所指Python环境无效(例如环境被卸载)时值是空字符串。
+        """
+        env_path = self.env_path
+        if not env_path:
             return ''
-        return os.path.join(self.env_path, 'python.exe')
+        return os.path.join(env_path, 'python.exe')
 
     def __str__(self):
         location = self.env_path or 'unknown location'
         return '{} @ {}'.format(self.py_info(), location)
 
     @property
-    def pip_readied(self):
-        warn('\n本属性已被pip_ready属性取代并将在下个版本移除，请尽快更新您的源代码。', stacklevel=2)
-        return bool(self.pip_path())
-
-    @property
     def pip_ready(self):
-        """代表该Python环境中pip是否已安装的属性。值为True代表pip已安装，反之False代表未安装。"""
-        return bool(self.pip_path())
+        """
+        代表该Python环境中pip是否已安装的属性。
+        值为True代表pip已安装，False代表未安装。
+        """
+        env_path = self.env_path
+        if not env_path:
+            return False
+        return os.path.isfile(
+            os.path.join(
+                env_path, 'Lib', 'site-packages', 'pip', '__init__.py'
+            )
+        )
 
     @staticmethod
     def __check(_path):
-        """检查参数path是否是一个有效的Python目录路径。"""
-        if not (
-            isinstance(_path, str)
-            and os.path.isfile(os.path.join(_path, 'python.exe'))
-        ):
+        """检查参数path在当前是否是一个有效的Python目录路径。"""
+        if not os.path.isfile(os.path.join(_path, 'python.exe')):
             return ''
         return os.path.join(_path, '')
 
     @staticmethod
     def __check_timeout_num(timeout):
-        if not isinstance(timeout, (int, float)):
-            if timeout is None:
-                return True
-            raise 数据类型异常('参数timeout值应为None、整数或浮点数。')
-        if timeout < 1:
-            raise 参数值异常('超时参数timeout的值不能小于1。')
-        return True
+        if isinstance(timeout, (int, float)):
+            if timeout < 1:
+                raise 参数值异常('超时参数timeout的值不能小于1。')
+            return True
+        if timeout is None:
+            return True
+        raise 数据类型异常('参数timeout值应为None、整数或浮点数。')
 
     def py_info(self):
         """获取当前环境Python版本信息。"""
-        information = 'Python {} :: {} bit'
+        info = 'Python {} :: {} bit'
         if not self.env_path:
-            return information.format('0.0.0', '?')
+            return info.format('0.0.0', '?')
         source_code = 'import sys;print(sys.version)'
         script_path = os.path.join(self.cur_d, '__pyinfo.py')
         if not os.path.isfile(script_path):
@@ -238,54 +260,56 @@ class PyEnv:
                 try:
                     os.makedirs(self.cur_d)
                 except Exception:
-                    pass
+                    return info.format('0.0.0', '?')
             try:
                 with open(script_path, 'wt', encoding='utf-8') as py_file:
                     py_file.write(source_code)
             except Exception:
-                return information.format('0.0.0', '?')
+                return info.format('0.0.0', '?')
         result, retcode = _execute_cmd(
             (self.interpreter, script_path), '', True, True, None
         )
         if retcode or not result:
-            return information.format('0.0.0', '?')
-        info = re.match(
+            return info.format('0.0.0', '?')
+        m_obj = re.match(
             r'(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)', result
         )
-        if not info:
-            return information.format('0.0.0', '?')
-        return information.format(*info.groups())
+        if not m_obj:
+            return info.format('0.0.0', '?')
+        return info.format(*m_obj.groups())
 
     def pip_path(self):
         """
         根据env_path属性所指的Python安装目录获取pip可执行文件路径。
-        如果Scripts目录不存在或无法打开则抛出"目录查找异常"。
-        如果在Scripts目录中没有找到pip可执行文件则抛出"文件查找异常"。
-        :return: str, 该PyEnv实例的pip可执行文件的完整路径或空字符。
+        如果Scripts目录不存在或无法打开则返回空字符串。
+        如果在Scripts目录中没有找到pip可执行文件则返回空字符串。
+        :return: str, 该PyEnv实例所指Python环境的pip可执行文件的完整路径或空字符。
         """
-        if not self.env_path:
+        env_path = self.env_path
+        if not env_path:
             return ''
-        dir_pip_exists = os.path.join(self.env_path, 'Scripts')
+        dir_pip_exists = os.path.join(env_path, 'Scripts')
         try:
             dirs_and_files = os.listdir(dir_pip_exists)
         except Exception:
             return ''
         for dir_or_file in dirs_and_files:
-            if os.path.isdir(os.path.join(dir_pip_exists, dir_or_file)):
+            if not os.path.isfile(os.path.join(dir_pip_exists, dir_or_file)):
                 continue
-            result = re.match(r'^pip.*\.exe$', dir_or_file)
-            if result:
-                return os.path.join(dir_pip_exists, result.group())
+            match_obj = re.match(r'^pip.*\.exe$', dir_or_file)
+            if not match_obj:
+                continue
+            return os.path.join(dir_pip_exists, match_obj.group())
         return ''
 
     def pip_info(self):
         """
         获取该目录的pip版本信息。
-        如果获取到pip版本信息，则返回一个PipInfo实例，可以通过访问实例的
-        pipver、path、pyver属性分别获取到pip版本号、pip目录路径、该pip所在的Python环境版本号；
+        如果获取到pip版本信息，则返回一个PipInformation实例，
+        可以通过访问实例的pipver、path、pyver属性分别获取到pip版本号、pip目录路径、该pip所在的Python环境版本号；
         如果没有获取到pip信息或获取到信息但未正确匹配到信息格式，则返回None。
         直接打印PipInfo实例则显示概览：pip_info(pip版本、pip路径、相应Python版本)。
-        :return: 匹配到pip版本信息：_PipInfo实例；未获取到pip版本信息：返回None。
+        :return: 匹配到pip版本信息：PipInformation实例；未获取到pip版本信息：返回None。
         """
         if not self.pip_ready:
             return
@@ -295,12 +319,15 @@ class PyEnv:
         )
         if retcode or not result:
             return
-        result = re.match('pip (.+) from (.+) \(python (.+)\)', result.strip())
-        if result:
-            res = result.groups()
-            if len(res) == 3:
-                return _PipInfo(*res)
-        return None
+        match_obj = re.match(
+            'pip (.+) from (.+) \(python (.+)\)', result.strip()
+        )
+        if not match_obj:
+            return
+        res = match_obj.groups()
+        if not (len(res) == 3):
+            return
+        return PipInformation(*res)
 
     @staticmethod
     def __clean_info(string):
@@ -449,14 +476,15 @@ class PyEnv:
         安装Python第三方包。
         包名names必须提供，其他参数可以省略，但除了names参数，其他需要指定的参数需以关键字参数方式指定。
         注意：包名names中只要有一个不可安装(无资源等原因)，其他包也不会被安装。
-        所以如果你不能保证names中所有的包都能被安装，那最好只传一个包名参数给install，在外部循环调用install方法安装所有的包。
+        所以如果不能保证names中所有的包都能被安装，那最好只输入一个包名参数，在外部循环调用install方法安装所有的包。
         :param names: str, 第三方包名(可变数量参数)。
-        :param index_url: str, 镜像源地址。
-        :param upgrade: bool, 是否以升级模式安装(如果之前已安装该包，则以升级模式安装会卸载旧版本安装新版本，反之会跳过安装，不会安装新版本)
+        :param index_url: str, pip镜像源地址。
+        :param upgrade: bool, 是否以升级模式安装(如果之前已安装该包，则升级模式会卸载旧版本安装新版本，反之会跳过安装，不安装新版本)
         :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
         :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
-        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，包名names中只要有一个不可安装则所有传入的包名都不会被安装，退出状态为False。
+        :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组。
+        但包名names中只要有一个包不可安装(无资源等原因)，则所有传入的包名都不会被安装，且退出状态为False。
         """
         if not self.pip_ready or not names:
             return tuple()
@@ -595,7 +623,7 @@ class PyEnv:
                 try:
                     os.makedirs(self.cur_d)
                 except Exception:
-                    pass
+                    return []
             try:
                 with open(script_path, 'wt', encoding='utf-8') as py_file:
                     py_file.write(source_code)
