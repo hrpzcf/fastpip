@@ -150,16 +150,6 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     return out_put, return_code
 
 
-def _fix_bad_code(string):
-    """将pip search返回的文字中的乱码(#&1234;之类的字符)转换成正确的文字。"""
-    for badcode in re.findall(r'(?:#&|&#)\d+?;', string):
-        try:
-            string = string.replace(badcode, chr(int(badcode[2:-1])))
-        except Exception:
-            pass
-    return string
-
-
 class PyEnv:
     """
     Python环境类。
@@ -533,50 +523,6 @@ class PyEnv:
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
         )
-
-    def search(
-        self,
-        keywords,
-        *,
-        no_output=True,
-        no_tips=True,
-        timeout=None,
-    ):
-        """
-        以关键字搜索包名。
-        参数keywords应为包含关键字(str)的元组、列表或集合。
-        返回包含(包名, 最新版本, 概述)元组的列表。
-        :param keywords: tuple or lsit or set, 关键字集合。
-        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
-        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
-        :param timeout: int or float, 任务超时时长，单位为秒，可设为None。
-        :return: list[tuple[str, str, str]], 包含(包名, 最新版本, 概述)元组的列表。
-        """
-        warn(
-            '\n由于pip的search命令已失效且即将被移除，所以fastpip也即将在下个版本移除此方法，请尽快更新您的源代码。',
-            stacklevel=2,
-        )
-        if not self.pip_ready or not keywords:
-            return []
-        if not isinstance(keywords, (tuple, list, set)):
-            raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
-        if not all(isinstance(s, str) for s in keywords):
-            raise 数据类型异常('搜索关键字的数据类型应为包含str的tuple、lsit或set。')
-        self.__check_timeout_num(timeout)
-        search_results, tips = [], '正在搜索{}'.format('、'.join(keywords))
-        cmds = [self.interpreter, *_pipcmds['search'], *keywords]
-        result, retcode = _execute_cmd(cmds, tips, no_output, no_tips, timeout)
-        if retcode:
-            return search_results
-        result = result.split('\n')
-        pattern = re.compile(r'^(.+) \((.+)\)\s+\- (.+)$')
-        for search_result in result:
-            res = pattern.match(search_result)
-            if res:
-                *name_and_version, summary = res.groups()
-                summary = _fix_bad_code(summary)
-                search_results.append((*name_and_version, summary))
-        return search_results
 
     def imports(self):
         """获取该Python环境下的包、模块的导入名列表。"""
