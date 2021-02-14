@@ -7,7 +7,7 @@ from psutil import disk_partitions
 
 
 def _possible_location():
-    '''生成各磁盘上的常见的Python安装目录列表。'''
+    """生成各磁盘上的常见的Python安装目录列表。"""
     most_possible_path = []
     common_dir = (
         'Program Files',
@@ -29,10 +29,10 @@ def _possible_location():
 
 
 def _paths_in_PATH():
-    '''
+    """
     查找系统环境变量PATH中的Python目录路径列表。
     仅根据"目录中是否存在python.exe文件且大小不为0"进行简单查找。
-    '''
+    """
     paths_found = []
     PATH_paths = os.environ['PATH'].split(';')
     for PATH_path in PATH_paths:
@@ -55,7 +55,10 @@ def _paths_in_PATH():
 
 
 def cur_py_path():
-    '''默认Python目录路径（系统环境变量PATH中第一个Python目录路径）。'''
+    """
+    返回系统环境变量PATH中第一个Python目录路径。
+    如果环境变量PATH中没有Python目录路径则返回空字符串。
+    """
     PATH_paths = _paths_in_PATH()
     if not PATH_paths:
         return ''
@@ -63,10 +66,10 @@ def cur_py_path():
 
 
 def all_py_paths():
-    '''
+    """
     返回存在Python解释器的目录。
     如果在可能的安装目录中的子文件夹里找不到解释器，那就再深入一层目录，到此为止。
-    '''
+    """
     dirs_in_possible_location, deeper_location = [], []
     paths_py_exists = _paths_in_PATH()
     for path in _possible_location():
