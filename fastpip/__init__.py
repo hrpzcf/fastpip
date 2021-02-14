@@ -33,16 +33,13 @@ WEBSITE = 'https://gitee.com/hrpzcf/fastpip'
 VERSION = '.'.join(map(str, version))
 
 __all__ = [
-    'PyEnv',
     'all_py_paths',
     'cur_py_path',
     'index_urls',
-    'version',
-    '参数值异常',
-    '数据类型异常',
-    '文件查找异常',
-    '目录查找异常',
-    '适用平台异常',
-    'PyEnvNotFound',
+    'ParamTypeError',
+    'ParamValueError',
     'PathParamError',
+    'PyEnv',
+    'UnsupportedPlatform',
+    'version',
 ]

@@ -39,13 +39,12 @@ from subprocess import (
 )
 from threading import Thread
 from time import sleep
-from warnings import warn
 
 from .errors import *
 from .findpath import all_py_paths, cur_py_path
 
 if os.name != 'nt':
-    raise 适用平台异常('运行于不支持的操作系统。')
+    raise UnsupportedPlatform('运行在不支持的平台上。')
 
 _SHOW_RUNNING_TIPS = True
 _STARTUP = STARTUPINFO()
@@ -173,7 +172,7 @@ class PyEnv:
         """
         初始化Python路径。
         如果路径参数不是字符串，则抛出PathParamError异常。
-        该异常位于fastpip.errors，也可用from fastpip import *一并导入。
+        该异常可从fastpip.errors模块导入。
         """
         if isinstance(_path, str):
             return os.path.normpath(_path)
@@ -186,6 +185,7 @@ class PyEnv:
         """
         代表PyEnv类实例化时所传入的Python环境的绝对路径。
         可重新赋值一个路径(字符串)以改变PyEnv类实例所指的Python环境。
+        赋值类型非str则抛出PathParamError异常，该异常可从fastpip.errors模块导入。
         """
         return os.path.abspath(self.__env_path)
 
@@ -245,11 +245,11 @@ class PyEnv:
     def __check_timeout_num(timeout):
         if isinstance(timeout, (int, float)):
             if timeout < 1:
-                raise 参数值异常('超时参数timeout的值不能小于1。')
+                raise ParamValueError('超时参数timeout的值不能小于1。')
             return True
         if timeout is None:
             return True
-        raise 数据类型异常('参数timeout值应为None、整数或浮点数。')
+        raise ParamTypeError('参数timeout值应为None、整数或浮点数。')
 
     def py_info(self):
         """获取当前环境Python版本信息。"""
@@ -349,6 +349,8 @@ class PyEnv:
         :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :return: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表或空列表。
+        timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
+        timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not self.pip_ready:
             return []
@@ -368,6 +370,8 @@ class PyEnv:
         :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: float, 命令执行超时时长，单位为秒。
         :return: list[str...] or lsit[], 包含包名的列表或空列表。
+        timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
+        timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not self.pip_ready:
             return []
@@ -389,6 +393,8 @@ class PyEnv:
         :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :return: lsit[tuple[str, str, str, str]] or lsit[]，包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
+        timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
+        timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not self.pip_ready:
             return []
@@ -429,6 +435,8 @@ class PyEnv:
         :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
         :return: tuple[tuple['pip'], bool], 返回(('pip',), 退出状态)元组，退出状态为True表示升级成功，False表示失败。
+        timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
+        timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not self.pip_ready:
             return False
@@ -446,11 +454,12 @@ class PyEnv:
         设置pip全局镜像源地址。
         :param index_url: str, 镜像源地址，参数可省略。
         :return: bool, 退出状态，True表示设置成功，False表示设置失败。
+        参数index_url类型不是str则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not self.pip_ready or not index_url:
             return False
         if not isinstance(index_url, str):
-            raise 数据类型异常('镜像源地址参数的数据类型应为字符串。')
+            raise ParamTypeError('镜像源地址参数的数据类型应为字符串。')
         cmds = [self.interpreter, *_PIPCMDS['SETINDEX'], index_url]
         return not _execute_cmd(
             cmds, tips='', no_output=True, no_tips=True, timeout=None
@@ -488,6 +497,10 @@ class PyEnv:
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组。
         但包名names中只要有一个包不可安装(无资源等原因)，则所有传入的包名都不会被安装，且退出状态为False。
+        所有包名中有非str类型数据则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
+        index_url数据类型非str则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
+        timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
+        timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not self.pip_ready or not names:
             return tuple()
@@ -497,9 +510,9 @@ class PyEnv:
         no_tips = kwargs.get('no_tips', True)
         no_output = kwargs.get('no_output', True)
         if not all(isinstance(s, str) for s in names):
-            raise 数据类型异常('包名参数的数据类型应为字符串。')
+            raise ParamTypeError('包名参数的数据类型应为字符串。')
         if not isinstance(index_url, str):
-            raise 数据类型异常('镜像源地址参数数据类型应为字符串。')
+            raise ParamTypeError('镜像源地址参数数据类型应为字符串。')
         self.__check_timeout_num(timeout)
         tips = '正在安装{}'.format(', '.join(names))
         cmds = [self.interpreter, *_PIPCMDS['INSTALL'], *names]
@@ -521,6 +534,9 @@ class PyEnv:
         :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态不为True则表示卸载失败。
+        所有包名中有非str类型数据则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
+        timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
+        timeout参数数据类型不是int或float或None则抛出ParamTypeError异常。该异常可从fastpip.errors模块导入。
         """
         if not self.pip_ready or not names:
             return tuple()
@@ -528,7 +544,7 @@ class PyEnv:
         no_tips = kwargs.get('no_tips', True)
         no_output = kwargs.get('no_output', True)
         if not all(isinstance(s, str) for s in names):
-            raise 数据类型异常('包名参数的数据类型应为字符串。')
+            raise ParamTypeError('包名参数的数据类型应为字符串。')
         self.__check_timeout_num(timeout)
         tips = '正在卸载{}'.format(', '.join(names))
         cmds = [self.interpreter, *_PIPCMDS['UNINSTALL'], *names]
@@ -554,9 +570,10 @@ class PyEnv:
         :param name: str, 要查询的包名或模块名。
         :param case: bool, 查询时是否对name大小写敏感。
         :return: list[str...], 该包、模块的导入名列表。
+        要查询的包名非str则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not isinstance(name, str):
-            raise TypeError('参数name数据类型错误，数据类型应为str。')
+            raise ParamTypeError('参数name数据类型错误，数据类型应为str。')
         if not case:
             name = name.lower()
         for sys_path in self.__read_sys_path():
