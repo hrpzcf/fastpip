@@ -34,7 +34,7 @@ def _paths_in_PATH():
     仅根据"目录中是否存在python.exe文件且大小不为0"进行简单查找。
     """
     paths_found = []
-    PATH_paths = os.environ['PATH'].split(';')
+    PATH_paths = os.getenv('PATH', '').split(';')
     for PATH_path in PATH_paths:
         try:
             PATH_path_files = os.listdir(PATH_path)
@@ -44,7 +44,7 @@ def _paths_in_PATH():
             file_size = os.path.getsize(os.path.join(PATH_path, 'python.exe'))
         except Exception:
             continue
-        PATH_path = os.path.join(PATH_path, '')
+        PATH_path = os.path.normpath(PATH_path)
         if (
             'python.exe' in PATH_path_files
             and PATH_path not in paths_found
@@ -70,7 +70,7 @@ def all_py_paths():
     返回存在Python解释器的目录。
     如果在可能的安装目录中的子文件夹里找不到解释器，那就再深入一层目录，到此为止。
     """
-    dirs_in_possible_location, deeper_location = [], []
+    possible_location, deeper_location = [], []
     paths_py_exists = _paths_in_PATH()
     for path in _possible_location():
         try:
@@ -80,16 +80,17 @@ def all_py_paths():
         for item in dirs_and_files:
             possible_dir = os.path.join(path, item)
             if os.path.isdir(possible_dir):
-                dirs_in_possible_location.append(possible_dir)
-    for possible_dir in dirs_in_possible_location:
+                possible_location.append(possible_dir)
+    for possible_dir in possible_location:
         try:
             dirs_and_files = os.listdir(possible_dir)
         except Exception:
             continue
-        possible_dir = os.path.join(possible_dir, '')
+        possible_dir = os.path.normpath(possible_dir)
         if 'python.exe' in dirs_and_files:
-            if possible_dir not in paths_py_exists:
-                paths_py_exists.append(possible_dir)
+            if possible_dir in paths_py_exists:
+                continue
+            paths_py_exists.append(possible_dir)
         else:
             for deeper in dirs_and_files:
                 path_deeper = os.path.join(possible_dir, deeper)
@@ -100,7 +101,7 @@ def all_py_paths():
             dirs_and_files = os.listdir(deeper_path)
         except Exception:
             continue
-        deeper_path = os.path.join(deeper_path, '')
+        deeper_path = os.path.normpath(deeper_path)
         if (
             'python.exe' in dirs_and_files
             and deeper_path not in paths_py_exists

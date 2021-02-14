@@ -177,7 +177,7 @@ class PyEnv:
         该异常位于fastpip.errors，也可用from fastpip import *一并导入。
         """
         if isinstance(_path, str):
-            return _path
+            return os.path.normpath(_path)
         if _path is None:
             return cur_py_path()
         raise PathParamError('路径参数类型错误。')
@@ -240,7 +240,7 @@ class PyEnv:
         """检查参数path在当前是否是一个有效的Python目录路径。"""
         if not os.path.isfile(os.path.join(_path, 'python.exe')):
             return ''
-        return os.path.join(_path, '')
+        return os.path.normpath(_path)
 
     @staticmethod
     def __check_timeout_num(timeout):
