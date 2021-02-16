@@ -140,7 +140,8 @@ dmypy.json
 cython_debug/
 
 # others
-.vs/
 .idea/
 .vscode/
 test.py
+ReadPyVER.*
+ReadSYSPB.*
