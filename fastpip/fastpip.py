@@ -40,6 +40,7 @@ from subprocess import (
 from threading import Thread
 from time import sleep
 
+from .versions import VERSION
 from .errors import *
 from .findpath import all_py_paths, cur_py_path
 
@@ -257,20 +258,20 @@ class PyEnv:
         if not self.env_path:
             return info.format('0.0.0', '?')
         source_code = 'import sys;print(sys.version)'
-        script_path = os.path.join(self.cur_d, '__pyinfo.py')
-        if not os.path.isfile(script_path):
+        _path = os.path.join(self.cur_d, f'ReadPyVER.{VERSION}')
+        if not os.path.isfile(_path):
             if not os.path.exists(self.cur_d):
                 try:
                     os.makedirs(self.cur_d)
                 except Exception:
                     return info.format('0.0.0', '?')
             try:
-                with open(script_path, 'wt', encoding='utf-8') as py_file:
+                with open(_path, 'wt', encoding='utf-8') as py_file:
                     py_file.write(source_code)
             except Exception:
                 return info.format('0.0.0', '?')
         result, retcode = _execute_cmd(
-            (self.interpreter, script_path), '', True, True, None
+            (self.interpreter, _path), '', True, True, None
         )
         if retcode or not result:
             return info.format('0.0.0', '?')
@@ -558,10 +559,11 @@ class PyEnv:
         pkg_import_names = []
         if not self.env_path:
             return pkg_import_names
-        sys_paths = self.__read_sys_path()
+        sys_paths, builtins = self.__read_sys_path_builtins()
         for sys_path in sys_paths:
             for names in self.__from_sys_path(sys_path).values():
                 pkg_import_names.extend(names)
+        pkg_import_names.extend(builtins)
         return pkg_import_names
 
     def query(self, name, *, case=True):
@@ -574,9 +576,13 @@ class PyEnv:
         """
         if not isinstance(name, str):
             raise ParamTypeError('参数name数据类型错误，数据类型应为str。')
+        sys_paths, builtins = self.__read_sys_path_builtins()
         if not case:
             name = name.lower()
-        for sys_path in self.__read_sys_path():
+            lbuiltins = [n.lower() for n in builtins]
+        if name in lbuiltins:
+            return [builtins[lbuiltins.index(name)]]
+        for sys_path in sys_paths:
             if case:
                 name_dict = self.__from_sys_path(sys_path)
             else:
@@ -588,32 +594,34 @@ class PyEnv:
                 return name_dict[name]
         return []
 
-    def __read_sys_path(self):
+    def __read_sys_path_builtins(self):
         """读取目标Python环境的sys.path属性。"""
         if not self.env_path:
             return []
-        source_code = 'import sys;print(sys.path)'
-        script_path = os.path.join(self.cur_d, '__syspath.py')
-        if not os.path.isfile(script_path):
+        source_code = '''import sys
+print(sys.path, "\\n", sys.builtin_module_names)'''
+        _path = os.path.join(self.cur_d, f'ReadSYSPB.{VERSION}')
+        if not os.path.isfile(_path):
             if not os.path.exists(self.cur_d):
                 try:
                     os.makedirs(self.cur_d)
                 except Exception:
-                    return []
+                    return [], ()
             try:
-                with open(script_path, 'wt', encoding='utf-8') as py_file:
+                with open(_path, 'wt', encoding='utf-8') as py_file:
                     py_file.write(source_code)
             except Exception:
-                return []
+                return [], ()
         result, retcode = _execute_cmd(
-            (self.interpreter, script_path), '', True, True, None
+            (self.interpreter, _path), '', True, True, None
         )
         if retcode or not result:
-            return []
+            return [], ()
         try:
-            return eval(result)
+            paths, builtins = result.strip().split('\n')
+            return eval(paths.strip()), eval(builtins.strip())
         except Exception:
-            return []
+            return [], ()
 
     @staticmethod
     def __from_sys_path(pkg_dir):
