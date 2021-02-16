@@ -1,10 +1,13 @@
 # fastpip
+`fastpip目前处于Beta阶段，版本升级可能会有不经通知的接口增删、参数变动等，也可能有未知的问题。`
+
+<br />
 
 ## 如何安装
 
 ------
 
-`注：fastpip 仅支持 Windows 系统。`
+`注：fastpip仅支持Windows平台。`
 
 <br />
 
