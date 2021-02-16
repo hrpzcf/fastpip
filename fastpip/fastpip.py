@@ -595,11 +595,11 @@ class PyEnv:
         return []
 
     def __read_sys_path_builtins(self):
-        """读取目标Python环境的sys.path属性。"""
+        """读取目标Python环境的sys.path和sys.builtin_module_names属性。"""
         if not self.env_path:
             return []
         source_code = '''import sys
-print(sys.path, "\\n", sys.builtin_module_names)'''
+print(sys.path[1:], "\\n", sys.builtin_module_names)'''
         _path = os.path.join(self.cur_d, f'ReadSYSPB.{VERSION}')
         if not os.path.isfile(_path):
             if not os.path.exists(self.cur_d):
