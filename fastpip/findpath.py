@@ -6,12 +6,12 @@ from psutil import disk_partitions
 
 
 def _common_location():
-    """生成各磁盘上的常见的Python安装目录列表。"""
-    most_possible_path = []
+    """生成各磁盘上的常见的Python安装目录路径列表。"""
+    most_possible_path = list()
     common_dir = (
         'Program Files',
         'Program Files (x86)',
-        os.path.join('Anaconda3', 'envs'),
+        'ProgramData',
     )
     most_possible_path.append(os.path.expanduser('~'))
     disk_parts = [dp.device for dp in disk_partitions()]
@@ -28,30 +28,34 @@ def _common_location():
     return most_possible_path
 
 
+def _fsize(*_fpath):
+    """返回文件路径中文件的大小。"""
+    try:
+        return os.path.getsize(os.path.join(*_fpath))
+    except Exception:
+        return False
+
+
 def _paths_in_PATH():
     """
     查找系统环境变量PATH中的Python目录路径列表。
-    仅根据"目录中是否存在python.exe文件且大小不为0"进行简单查找。
+    仅根据"目录中是否存在python.exe文件"进行简单查找。
     """
-    paths_found = []
+    python_paths_found = list()
     PATH_paths = os.getenv('PATH', '').split(';')
     for PATH_path in PATH_paths:
         try:
             PATH_path_files = os.listdir(PATH_path)
         except Exception:
             continue
-        try:
-            file_size = os.path.getsize(os.path.join(PATH_path, 'python.exe'))
-        except Exception:
-            continue
         PATH_path = os.path.normpath(PATH_path)
         if (
             'python.exe' in PATH_path_files
-            and PATH_path not in paths_found
-            and file_size
+            and _fsize(PATH_path, 'python.exe')
+            and PATH_path not in python_paths_found
         ):
-            paths_found.append(PATH_path)
-    return paths_found
+            python_paths_found.append(PATH_path)
+    return python_paths_found
 
 
 def cur_py_path():
@@ -65,47 +69,68 @@ def cur_py_path():
     return PATH_paths[0]
 
 
+def _list_fd(_path, t='b'):
+    """列出给定目录下的文件或文件夹，返回文件或文件夹列表。"""
+    results = list()
+    if os.path.isfile(_path):
+        return results
+    if t == 'f':
+        condi = os.path.isfile
+    elif t == 'd':
+        condi = os.path.isdir
+    else:
+        condi = os.path.exists
+    try:
+        files_dirs = os.listdir(_path)
+    except Exception:
+        return results
+    for item in files_dirs:
+        if condi(os.path.join(_path, item)):
+            results.append(item)
+    return results
+
+
+def _env_path_list(fd_name):
+    """
+    判断指定路径是否为Python或Anaconda3目录，
+    将确认为Python目录的路径或Anaconda3内Python目录路径添加到列表并返回。
+    """
+    fd_name = os.path.normpath(fd_name)
+    python_env_paths = list()
+    files = _list_fd(fd_name, 'f')
+    if 'python.exe' in files and _fsize(fd_name, 'python.exe'):
+        python_env_paths.append(fd_name)
+    if '_conda.exe' in files and _fsize(fd_name, '_conda.exe'):
+        env_d = os.path.join(fd_name, 'envs')
+        if not os.path.isdir(env_d):
+            return python_env_paths
+        for env_p in _list_fd(env_d, 'd'):
+            env_p = os.path.join(env_d, env_p)
+            if 'python.exe' in _list_fd(env_p, 'f'):
+                python_env_paths.append(env_p)
+    return python_env_paths
+
+
 def all_py_paths():
     """
-    返回存在Python解释器的目录。
-    如果在可能的安装目录中的子文件夹里找不到解释器，只再深入一层目录寻找。
+    返回存在Python解释器的目录路径列表。
+    只在常用安装位置深入搜索两层目录，不会过于深入。
     """
-    common_location, deeper_location = [], []
-    interpreter_exists = _paths_in_PATH()
-    for _path in _common_location():
-        try:
-            dirs_and_files = os.listdir(_path)
-        except Exception:
-            continue
-        for item in dirs_and_files:
-            possible_d = os.path.join(_path, item)
-            if os.path.isdir(possible_d):
-                common_location.append(possible_d)
-    for possible_d in common_location:
-        try:
-            dirs_and_files = os.listdir(possible_d)
-        except Exception:
-            continue
-        possible_d = os.path.normpath(possible_d)
-        if 'python.exe' in dirs_and_files:
-            if possible_d in interpreter_exists:
-                continue
-            interpreter_exists.append(possible_d)
-        else:
-            for deep in dirs_and_files:
-                path_deeper = os.path.join(possible_d, deep)
-                if not os.path.isdir(path_deeper):
-                    continue
-                deeper_location.append(path_deeper)
-    for deeper_path in deeper_location:
-        try:
-            dirs_and_files = os.listdir(deeper_path)
-        except Exception:
-            continue
-        deeper_path = os.path.normpath(deeper_path)
-        if (
-            'python.exe' in dirs_and_files
-            and deeper_path not in interpreter_exists
-        ):
-            interpreter_exists.append(deeper_path)
-    return interpreter_exists
+    paths_interpreter_exists = _paths_in_PATH()
+    for common in _common_location():
+        for level1 in _list_fd(common, 'd'):
+            level1_full = os.path.join(common, level1)
+            paths_interpreter_exists.extend(
+                _path
+                for _path in _env_path_list(level1_full)
+                if _path not in paths_interpreter_exists
+            )
+            for level2 in _list_fd(level1_full, 'd'):
+                paths_interpreter_exists.extend(
+                    _path
+                    for _path in _env_path_list(
+                        os.path.join(level1_full, level2)
+                    )
+                    if _path not in paths_interpreter_exists
+                )
+    return paths_interpreter_exists
