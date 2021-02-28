@@ -346,9 +346,9 @@ class PyEnv:
     def pkgs_info(self, *, no_output=True, no_tips=True, timeout=None):
         """
         获取该Python目录下已安装的包列表，列表包含(包名, 版本)元组，没有获取到则返回空列表。
-        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
-        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
-        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
+        :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
+        :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
+        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None表示无限制，默认为None。
         :return: lsit[tuple[str, str]] or list[], 包含(第三方包名, 版本)元组的列表或空列表。
         timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
         timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
@@ -367,9 +367,9 @@ class PyEnv:
     def pkg_names(self, *, no_output=True, no_tips=True, timeout=None):
         """
         获取该Python目录下已安装的包名列表，没有获取到包名列表则返回空列表。
-        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
-        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
-        :param timeout: float, 命令执行超时时长，单位为秒。
+        :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
+        :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
+        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None表示无限制，默认为None。
         :return: list[str...] or lsit[], 包含包名的列表或空列表。
         timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
         timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
@@ -390,9 +390,9 @@ class PyEnv:
         获取可更新的包列表，列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组。
         如果没有获取到或者没有可更新的包，返回空列表。
         检查更新时，环境中已安装的包越多耗费时间越多，请耐心等待。
-        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
-        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
-        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
+        :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
+        :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
+        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None表示无限制，默认为None。
         :return: lsit[tuple[str, str, str, str]] or lsit[]，包含(包名, 已安装版本, 最新版本, 安装包类型)的列表或空列表。
         timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
         timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
@@ -432,9 +432,9 @@ class PyEnv:
         """
         升级pip自身。
         :param index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
-        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
-        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
-        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None。
+        :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
+        :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
+        :param timeout: int or float, 命令执行超时时长，单位为秒，可设置为None表示无限制，默认为None。
         :return: tuple[tuple['pip'], bool], 返回(('pip',), 退出状态)元组，退出状态为True表示升级成功，False表示失败。
         timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
         timeout参数数据类型不是int或float或None则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
@@ -493,9 +493,9 @@ class PyEnv:
         :param names: str, 第三方包名(可变数量参数)。
         :param index_url: str, pip镜像源地址。
         :param upgrade: bool, 是否以升级模式安装(如果之前已安装该包，则升级模式会卸载旧版本安装新版本，反之会跳过安装，不安装新版本)
-        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
-        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
-        :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
+        :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
+        :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
+        :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制，默认为None。
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组。
         但包名names中只要有一个包不可安装(无资源等原因)，则所有传入的包名都不会被安装，且退出状态为False。
         所有包名中有非str类型数据则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
@@ -531,9 +531,9 @@ class PyEnv:
         卸载Python第三方包。
         注意：如果names中包含未安装的包名则跳过卸载，以下的退出状态仍为True。
         :param names: str, 第三方包名。
-        :param no_output: bool, 是否在终端上显示命令输出(使用GUI时请将此参数设置为False)。
-        :param no_tips: bool, 是否在终端上显示等待提示信息(使用GUI时请将此参数设置为False)。
-        :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制。
+        :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
+        :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
+        :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制，默认为None。
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组，状态不为True则表示卸载失败。
         所有包名中有非str类型数据则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         timeout参数值小于1则抛出ParamValueError异常，该异常可从fastpip.errors模块导入。
