@@ -626,12 +626,12 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)'''
     @staticmethod
     def __from_sys_path(pkg_dir):
         """从sys.path列表中的一个路径获取可用于导入的模块、包名。"""
-        modules_and_pkgs, names_used_for_import = [], {}
+        modules_and_pkgs, names_used_for_import = list(), dict()
         try:
             modules_and_pkgs.extend(os.listdir(pkg_dir))
         except Exception:
             return names_used_for_import
-        py_modules, py_packages = [], []
+        py_modules, py_packages = list(), list()
         pattern_d = re.compile(
             r'^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$'
         )
@@ -664,17 +664,19 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)'''
                     lines = top_level.readlines()
             except Exception:
                 continue
-            import_names = []
+            names_for_import_top_level = list()
             for l in lines:
                 m_obj_t = pattern_t.match(os.path.basename(l.strip()))
                 if not m_obj_t:
                     continue
-                import_names.append(m_obj_t.group())
+                names_for_import_top_level.append(m_obj_t.group())
             pkg_name = match_object_d.group(1)
             if pkg_name not in names_used_for_import:
-                names_used_for_import[pkg_name] = import_names
+                names_used_for_import[pkg_name] = names_for_import_top_level
             else:
-                names_used_for_import[pkg_name].extend(import_names)
+                names_used_for_import[pkg_name].extend(
+                    names_for_import_top_level
+                )
         for module in py_modules:
             match_object_f = pattern_f.match(module)
             if not match_object_f:
