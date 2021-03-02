@@ -493,6 +493,9 @@ class PyEnv:
         :param names: str, 第三方包名(可变数量参数)。
         :param index_url: str, pip镜像源地址。
         :param upgrade: bool, 是否以升级模式安装(如果之前已安装该包，则升级模式会卸载旧版本安装新版本，反之会跳过安装，不安装新版本)
+        :param pre: bool, 查找目标是否包括预发行版和开发版，默认为False，即仅查找稳定版。
+        :param user: bool, 是否安装到您平台的Python用户安装目录，通常是 ~/.local/或％APPDATA％Python，默认False。
+        :param compile: bool or 'auto', 是否将Python源文件编译为字节码，默认'auto'，由pip决定。
         :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
         :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
         :param timeout: int or float, 任务超时限制，单位为秒，可设为None表示无限制，默认为None。
@@ -505,22 +508,35 @@ class PyEnv:
         """
         if not self.pip_ready or not names:
             return tuple()
+        install_pre = kwargs.get('pre', False)
         index_url = kwargs.get('index_url', '')
         timeout = kwargs.get('timeout', None)
         upgrade = kwargs.get('upgrade', False)
         no_tips = kwargs.get('no_tips', True)
         no_output = kwargs.get('no_output', True)
+        install_user = kwargs.get('user', False)
+        compile_sc = kwargs.get('compile', 'auto')
         if not all(isinstance(s, str) for s in names):
             raise ParamTypeError('包名参数的数据类型应为字符串。')
         if not isinstance(index_url, str):
             raise ParamTypeError('镜像源地址参数数据类型应为字符串。')
         self.__check_timeout_num(timeout)
-        tips = '正在安装{}'.format(', '.join(names))
         cmds = [self.interpreter, *_PIPCMDS['INSTALL'], *names]
+        if install_pre:
+            cmds.append('--pre')
         if upgrade:
             cmds.append('-U')
         if index_url:
             cmds.extend(('-i', index_url))
+        if install_user:
+            cmds.append('--user')
+        if compile_sc == 'auto':
+            pass
+        elif compile_sc:
+            cmds.append('--compile')
+        else:
+            cmds.append('--no-compile')
+        tips = '正在安装{}'.format(', '.join(names))
         return (
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
