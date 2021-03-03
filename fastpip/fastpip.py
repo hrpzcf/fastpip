@@ -491,8 +491,9 @@ class PyEnv:
         注意：包名names中只要有一个不可安装(无资源等原因)，其他包也不会被安装。
         所以如果不能保证names中所有的包都能被安装，那最好只输入一个包名参数，在外部循环调用install方法安装所有的包。
         :param names: str, 第三方包名(可变数量参数)。
+        :param strategy: 'eager' or 'needed', 依赖库的升级策略，'eager'：总是升级依赖库，'needed'：仅当依赖库不满足要求时才升级。默认「仅在需要时」。
         :param index_url: str, pip镜像源地址。
-        :param upgrade: bool, 是否以升级模式安装(如果之前已安装该包，则升级模式会卸载旧版本安装新版本，反之会跳过安装，不安装新版本)
+        :param upgrade: bool, 是否以升级模式安装。如果之前已安装该包，则升级模式会卸载旧版本安装新版本，反之会跳过安装，不安装新版本。
         :param pre: bool, 查找目标是否包括预发行版和开发版，默认为False，即仅查找稳定版。
         :param user: bool, 是否安装到您平台的Python用户安装目录，通常是 ~/.local/或％APPDATA％Python，默认False。
         :param compile: bool or 'auto', 是否将Python源文件编译为字节码，默认'auto'，由pip决定。
@@ -516,11 +517,14 @@ class PyEnv:
         no_output = kwargs.get('no_output', True)
         install_user = kwargs.get('user', False)
         compile_sc = kwargs.get('compile', 'auto')
+        upgrade_strategy = kwargs.get('strategy', None)
         if not all(isinstance(s, str) for s in names):
             raise ParamTypeError('包名参数的数据类型应为字符串。')
         if not isinstance(index_url, str):
             raise ParamTypeError('镜像源地址参数数据类型应为字符串。')
         self.__check_timeout_num(timeout)
+        if upgrade_strategy not in (None, 'eager', 'needed'):
+            raise ParamValueError('strategy参数可选值为"eager"、"needed"或None。')
         cmds = [self.interpreter, *_PIPCMDS['INSTALL'], *names]
         if install_pre:
             cmds.append('--pre')
@@ -530,6 +534,8 @@ class PyEnv:
             cmds.extend(('-i', index_url))
         if install_user:
             cmds.append('--user')
+        if upgrade_strategy:
+            cmds.extend(('--upgrade-strategy', upgrade_strategy))
         if compile_sc == 'auto':
             pass
         elif compile_sc:
