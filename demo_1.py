@@ -10,7 +10,7 @@ from fastpip import PyEnv
 # 参数_path是一个路径，指向Python解释器(python.exe)所在目录
 # 例如 env = PyEnv(r'C:\Anaconda3\envs\py35')
 
-env = PyEnv() # 不带参数或者PyEnv(None)则使用系统环境变量PATH中第一个Py路径
+env = PyEnv()  # 不带参数或者PyEnv(None)则使用系统环境变量PATH中第一个Py路径
 
 
 # 调用PyEnv类实例的outdated方法获取可更新的包列表
@@ -25,7 +25,7 @@ env = PyEnv() # 不带参数或者PyEnv(None)则使用系统环境变量PATH中�
 outdated_pkgs = env.outdated(no_output=0, no_tips=0)
 
 # 询问是否安装所有可更新的包，回答非y则退出
-if input('\n确认更新？y/[n]：').lower() != 'y':
+if input("\n确认更新？y/[n]：").lower() != "y":
     sys.exit(0)
 
 for name, *_ in outdated_pkgs:
@@ -36,4 +36,4 @@ for name, *_ in outdated_pkgs:
     # 如果目标环境已安装，不管该包有没有新版本都不会重新安装，直接跳过。
     env.install(name, upgrade=1, no_tips=0)
 
-print('全部更新完成！')
+print("全部更新完成！")

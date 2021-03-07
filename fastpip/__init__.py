@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-license = ''' MIT License
+license = """ MIT License
 
 Copyright (c) 2020-2021 hrp/hrpzcf <hrpzcf@foxmail.com>
 
@@ -20,20 +20,20 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.'''
+SOFTWARE."""
 
 from .errors import *
 from .fastpip import PyEnv, all_py_paths, cur_py_path, index_urls
 from .versions import *
 
 __all__ = [
-    'all_py_paths',
-    'cur_py_path',
-    'index_urls',
-    'ParamTypeError',
-    'ParamValueError',
-    'PathParamError',
-    'PyEnv',
-    'UnsupportedPlatform',
-    'version',
+    "all_py_paths",
+    "cur_py_path",
+    "index_urls",
+    "ParamTypeError",
+    "ParamValueError",
+    "PathParamError",
+    "PyEnv",
+    "UnsupportedPlatform",
+    "version",
 ]

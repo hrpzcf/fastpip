@@ -9,11 +9,11 @@ def __common_location():
     """生成各磁盘上的常见的Python安装目录路径列表。"""
     most_possible_path = list()
     common_dir = (
-        'Program Files',
-        'Program Files (x86)',
-        'ProgramData',
+        "Program Files",
+        "Program Files (x86)",
+        "ProgramData",
     )
-    most_possible_path.append(os.path.expanduser('~'))
+    most_possible_path.append(os.path.expanduser("~"))
     disk_parts = [dp.device for dp in disk_partitions()]
     most_possible_path.extend(disk_parts)
     for dp in disk_parts:
@@ -22,7 +22,7 @@ def __common_location():
             if not os.path.isdir(full_path):
                 continue
             most_possible_path.append(full_path)
-    appd = os.path.join(os.getenv('LOCALAPPDATA'), 'Programs')
+    appd = os.path.join(os.getenv("LOCALAPPDATA"), "Programs")
     if os.path.exists(appd):
         most_possible_path.append(appd)
     return most_possible_path
@@ -42,7 +42,7 @@ def __paths_in_PATH():
     仅根据"目录中是否存在python.exe文件"进行简单查找。
     """
     python_paths_found = list()
-    PATH_paths = os.getenv('PATH', '').split(';')
+    PATH_paths = os.getenv("PATH", "").split(";")
     for PATH_path in PATH_paths:
         try:
             PATH_path_files = os.listdir(PATH_path)
@@ -50,8 +50,8 @@ def __paths_in_PATH():
             continue
         PATH_path = os.path.normpath(PATH_path)
         if (
-            'python.exe' in PATH_path_files
-            and __fsize(PATH_path, 'python.exe')
+            "python.exe" in PATH_path_files
+            and __fsize(PATH_path, "python.exe")
             and PATH_path not in python_paths_found
         ):
             python_paths_found.append(PATH_path)
@@ -65,18 +65,18 @@ def cur_py_path():
     """
     PATH_paths = __paths_in_PATH()
     if not PATH_paths:
-        return ''
+        return ""
     return PATH_paths[0]
 
 
-def __list_fd(_path, t='b'):
+def __list_fd(_path, t="b"):
     """列出给定目录下的文件或文件夹，返回文件或文件夹列表。"""
     results = list()
     if os.path.isfile(_path):
         return results
-    if t == 'f':
+    if t == "f":
         condi = os.path.isfile
-    elif t == 'd':
+    elif t == "d":
         condi = os.path.isdir
     else:
         condi = os.path.exists
@@ -97,16 +97,16 @@ def __path_list(fd_name):
     """
     fd_name = os.path.normpath(fd_name)
     python_env_paths = list()
-    files = __list_fd(fd_name, 'f')
-    if 'python.exe' in files and __fsize(fd_name, 'python.exe'):
+    files = __list_fd(fd_name, "f")
+    if "python.exe" in files and __fsize(fd_name, "python.exe"):
         python_env_paths.append(fd_name)
-    if '_conda.exe' in files and __fsize(fd_name, '_conda.exe'):
-        env_d = os.path.join(fd_name, 'envs')
+    if "_conda.exe" in files and __fsize(fd_name, "_conda.exe"):
+        env_d = os.path.join(fd_name, "envs")
         if not os.path.isdir(env_d):
             return python_env_paths
-        for env_p in __list_fd(env_d, 'd'):
+        for env_p in __list_fd(env_d, "d"):
             env_p = os.path.join(env_d, env_p)
-            if 'python.exe' in __list_fd(env_p, 'f'):
+            if "python.exe" in __list_fd(env_p, "f"):
                 python_env_paths.append(env_p)
     return python_env_paths
 
@@ -118,13 +118,13 @@ def all_py_paths():
     """
     paths_interpreter_exists = __paths_in_PATH()
     for common in __common_location():
-        for level1 in __list_fd(common, 'd'):
+        for level1 in __list_fd(common, "d"):
             l1f = os.path.join(common, level1)
             for _path in __path_list(l1f):
                 if _path in paths_interpreter_exists:
                     continue
                 paths_interpreter_exists.append(_path)
-            for level2 in __list_fd(l1f, 'd'):
+            for level2 in __list_fd(l1f, "d"):
                 for _path in __path_list(os.path.join(l1f, level2)):
                     if _path in paths_interpreter_exists:
                         continue

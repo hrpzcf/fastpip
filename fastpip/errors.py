@@ -26,8 +26,8 @@ class UnsupportedPlatform(Exception):
 
 
 __all__ = [
-    'ParamTypeError',
-    'ParamValueError',
-    'PathParamError',
-    'UnsupportedPlatform',
+    "ParamTypeError",
+    "ParamValueError",
+    "PathParamError",
+    "UnsupportedPlatform",
 ]

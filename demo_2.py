@@ -29,11 +29,11 @@ print(all_py_paths())
 # PyEnv类：
 ##########
 # 实例化一个PyEnv类：
-target = PyEnv('C:\\Python37\\')
+target = PyEnv("C:\\Python37\\")
 # target = PyEnv() 与上面一行代码效果是一样的，省略参数时PyEnv内部会调用cur_py_path函数获取系统环境变量PATH中第一个Python目录路径，如果Python路径还未设置到PATH中，则创建一个不指向任何Python目录路径的PyEnv空实例，实例的所有方法被调用时都将返回空值(不同的方法返回的数据类型也不同，但都是可以判为False的空值，例如空列表、空字符串)
 
 # 在该环境中安装模块(例如安装fastpip)：
-print(target.install('fastpip', upgrade=1))
+print(target.install("fastpip", upgrade=1))
 # 安装成功返回True，否则返回False。
 # upgrade=1代表以升级模式安装最新版本，否则如果环境中已安装fastpip，install方法将不会再安装一次fastpip。
 # 如果有需要，也可以增加以下关键字参数：
