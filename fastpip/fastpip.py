@@ -44,8 +44,8 @@ from .versions import VERSION
 from .errors import *
 from .findpath import all_py_paths, cur_py_path
 
-if os.name != 'nt':
-    raise UnsupportedPlatform('运行在不支持的平台上。')
+if os.name != "nt":
+    raise UnsupportedPlatform("运行在不支持的平台上。")
 
 _SHOW_RUNNING_TIPS = True
 _STARTUP = STARTUPINFO()
@@ -54,27 +54,28 @@ _STARTUP.wShowWindow = SW_HIDE
 
 # 预设镜像源：
 index_urls = {
-    'aliyun': 'https://mirrors.aliyun.com/pypi/simple/',  # 阿里源
-    'tencent': 'https://mirrors.cloud.tencent.com/pypi/simple',  # 腾讯源
-    'douban': 'https://pypi.doubanio.com/simple/',  # 豆瓣源
-    'opentuna': 'https://opentuna.cn/pypi/web/simple',  # 清华源
-    'tsinghua': 'https://pypi.tuna.tsinghua.edu.cn/simple',  # 清华源
-    'huawei': 'https://mirrors.huaweicloud.com/repository/pypi/simple',  # 华为源
-    'netease': 'https://mirrors.163.com/pypi/simple/',  # 网易源
-    'pypi': 'https://pypi.org/simple/',  # 官方源
+    "aliyun": "https://mirrors.aliyun.com/pypi/simple/",  # 阿里源
+    "tencent": "https://mirrors.cloud.tencent.com/pypi/simple",  # 腾讯源
+    "douban": "https://pypi.doubanio.com/simple/",  # 豆瓣源
+    "opentuna": "https://opentuna.cn/pypi/web/simple",  # 清华源
+    "tsinghua": "https://pypi.tuna.tsinghua.edu.cn/simple",  # 清华源
+    "huawei": "https://mirrors.huaweicloud.com/repository/pypi/simple",  # 华为源
+    "netease": "https://mirrors.163.com/pypi/simple/",  # 网易源
+    "pypi": "https://pypi.org/simple/",  # 官方源
 }
 
 # 部分pip命令
-_PREFIX = ('-m', 'pip')
+_PREFIX = ("-m", "pip")
 _PIPCMDS = {
-    'INSTALL': (*_PREFIX, 'install'),
-    'UNINSTALL': (*_PREFIX, 'uninstall', '-y'),
-    'LIST': (*_PREFIX, 'list'),
-    'INFO': (*_PREFIX, '-V'),
-    'OUTDATED': (*_PREFIX, 'list', '--outdated'),
-    'PIPUP': (*_PREFIX, 'install', '-U', 'pip'),
-    'SETINDEX': (*_PREFIX, 'config', 'set', 'global.index-url'),
-    'GETINDEX': (*_PREFIX, 'config', 'list'),
+    "INSTALL": (*_PREFIX, "install"),
+    "UNINSTALL": (*_PREFIX, "uninstall", "-y"),
+    "LIST": (*_PREFIX, "list"),
+    "INFO": (*_PREFIX, "-V"),
+    "OUTDATED": (*_PREFIX, "list", "--outdated"),
+    "PIPUP": (*_PREFIX, "install", "-U", "pip"),
+    "SETINDEX": (*_PREFIX, "config", "set", "global.index-url"),
+    "GETINDEX": (*_PREFIX, "config", "list"),
+    "DOWNLOAD": (*_PREFIX, "download"),
 }
 
 
@@ -87,7 +88,7 @@ class PipInformation:
         self.__pipver = pipver
 
     def __str__(self):
-        return 'pip_info(pipver={}, path={}, pyver={})'.format(
+        return "pip_info(pipver={}, path={}, pyver={})".format(
             self.__pipver, self.__path, self.__pyver
         )
 
@@ -111,13 +112,13 @@ def _tips_and_wait(tips):
 
     def _print_tips(tips):
         global _SHOW_RUNNING_TIPS
-        num, dot = 0, '.'
+        num, dot = 0, "."
         while _SHOW_RUNNING_TIPS:
-            print('{}{}{}'.format(tips, dot * num, '   '), end='\r')
+            print("{}{}{}".format(tips, dot * num, "   "), end="\r")
             num = 0 if num == 3 else num + 1
             sleep(0.5)
         _SHOW_RUNNING_TIPS = True
-        print('{}'.format("  " * (len(tips) + 3)), end='\r')
+        print("{}".format("  " * (len(tips) + 3)), end="\r")
 
     tips_thread = Thread(target=_print_tips, args=(tips,))
     tips_thread.start()
@@ -140,12 +141,12 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
         out_put = process.communicate(timeout=timeout)[0]
         return_code = process.returncode
     except Exception:
-        out_put, return_code = '', 1
+        out_put, return_code = "", 1
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
     if not no_output:
-        print(out_put, end='')
+        print(out_put, end="")
     return out_put, return_code
 
 
@@ -156,7 +157,12 @@ class PyEnv:
     只有一个例外：使用set_global_index方法设置本机pip全局镜像源地址，对所有环境产生作用。
     """
 
-    cur_d = os.path.dirname(os.path.abspath(__file__))
+    CUR_DIR = os.path.dirname(os.path.abspath(__file__))
+    USER_DOWNLOADS = os.path.join(
+        os.path.join(os.getenv("HOMEDRIVE", ""), os.getenv("HOMEPATH", ""))
+        or CUR_DIR,
+        "Downloads",
+    )
 
     def __init__(self, path=None):
         """
@@ -179,7 +185,7 @@ class PyEnv:
             return os.path.normpath(_path)
         if _path is None:
             return cur_py_path()
-        raise PathParamError('路径参数类型错误。')
+        raise PathParamError("路径参数类型错误。")
 
     @property
     def path(self):
@@ -193,7 +199,7 @@ class PyEnv:
     @path.setter
     def path(self, _path):
         if not isinstance(_path, str):
-            raise PathParamError('路径参数类型错误。')
+            raise PathParamError("路径参数类型错误。")
         self.__env_path = os.path.normpath(_path)
 
     @property
@@ -213,12 +219,12 @@ class PyEnv:
         """
         env_path = self.env_path
         if not env_path:
-            return ''
-        return os.path.join(env_path, 'python.exe')
+            return ""
+        return os.path.join(env_path, "python.exe")
 
     def __str__(self):
-        location = self.env_path or 'unknown location'
-        return '{} @ {}'.format(self.py_info(), location)
+        location = self.env_path or "unknown location"
+        return "{} @ {}".format(self.py_info(), location)
 
     @property
     def pip_ready(self):
@@ -231,55 +237,55 @@ class PyEnv:
             return False
         return os.path.isfile(
             os.path.join(
-                env_path, 'Lib', 'site-packages', 'pip', '__init__.py'
+                env_path, "Lib", "site-packages", "pip", "__init__.py"
             )
         )
 
     @staticmethod
     def __check(_path):
         """检查参数path在当前是否是一个有效的Python目录路径。"""
-        if not os.path.isfile(os.path.join(_path, 'python.exe')):
-            return ''
+        if not os.path.isfile(os.path.join(_path, "python.exe")):
+            return ""
         return os.path.normpath(_path)
 
     @staticmethod
     def __check_timeout_num(timeout):
         if isinstance(timeout, (int, float)):
             if timeout < 1:
-                raise ParamValueError('超时参数timeout的值不能小于1。')
+                raise ParamValueError("超时参数timeout的值不能小于1。")
             return True
         if timeout is None:
             return True
-        raise ParamTypeError('参数timeout值应为None、整数或浮点数。')
+        raise ParamTypeError("参数timeout值应为None、整数或浮点数。")
 
     def py_info(self):
         """获取当前环境Python版本信息。"""
-        info = 'Python {} :: {} bit'
+        info = "Python {} :: {} bit"
         if not self.env_path:
-            return info.format('0.0.0', '?')
-        source_code = 'import sys;print(sys.version)'
-        _path = os.path.join(self.cur_d, f'ReadPyVER.{VERSION}')
+            return info.format("0.0.0", "?")
+        source_code = "import sys;print(sys.version)"
+        _path = os.path.join(self.CUR_DIR, f"ReadPyVER.{VERSION}")
         if not os.path.isfile(_path):
-            if not os.path.exists(self.cur_d):
+            if not os.path.exists(self.CUR_DIR):
                 try:
-                    os.makedirs(self.cur_d)
+                    os.makedirs(self.CUR_DIR)
                 except Exception:
-                    return info.format('0.0.0', '?')
+                    return info.format("0.0.0", "?")
             try:
-                with open(_path, 'wt', encoding='utf-8') as py_file:
+                with open(_path, "wt", encoding="utf-8") as py_file:
                     py_file.write(source_code)
             except Exception:
-                return info.format('0.0.0', '?')
+                return info.format("0.0.0", "?")
         result, retcode = _execute_cmd(
-            (self.interpreter, _path), '', True, True, None
+            (self.interpreter, _path), "", True, True, None
         )
         if retcode or not result:
-            return info.format('0.0.0', '?')
+            return info.format("0.0.0", "?")
         m_obj = re.match(
-            r'(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)', result
+            r"(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)", result
         )
         if not m_obj:
-            return info.format('0.0.0', '?')
+            return info.format("0.0.0", "?")
         return info.format(*m_obj.groups())
 
     def pip_path(self):
@@ -291,20 +297,20 @@ class PyEnv:
         """
         env_path = self.env_path
         if not env_path:
-            return ''
-        dir_pip_exists = os.path.join(env_path, 'Scripts')
+            return ""
+        dir_pip_exists = os.path.join(env_path, "Scripts")
         try:
             dirs_and_files = os.listdir(dir_pip_exists)
         except Exception:
-            return ''
+            return ""
         for dir_or_file in dirs_and_files:
             if not os.path.isfile(os.path.join(dir_pip_exists, dir_or_file)):
                 continue
-            match_obj = re.match(r'^pip.*\.exe$', dir_or_file)
+            match_obj = re.match(r"^pip.*\.exe$", dir_or_file)
             if not match_obj:
                 continue
             return os.path.join(dir_pip_exists, match_obj.group())
-        return ''
+        return ""
 
     def pip_info(self):
         """
@@ -317,14 +323,14 @@ class PyEnv:
         """
         if not self.pip_ready:
             return
-        cmds = [self.interpreter, *_PIPCMDS['INFO']]
+        cmds = [self.interpreter, *_PIPCMDS["INFO"]]
         result, retcode = _execute_cmd(
-            cmds, tips='', no_output=True, no_tips=True, timeout=None
+            cmds, tips="", no_output=True, no_tips=True, timeout=None
         )
         if retcode or not result:
             return
         match_obj = re.match(
-            'pip (.+) from (.+) \(python (.+)\)', result.strip()
+            "pip (.+) from (.+) \(python (.+)\)", result.strip()
         )
         if not match_obj:
             return
@@ -337,11 +343,11 @@ class PyEnv:
     def __clean_info(string):
         """清理pip包名列表命令的无关输出。"""
         preprocessed = re.search(
-            r'Package\s+Version\s*\n[-\s]+\n(.+)', string, re.S
+            r"Package\s+Version\s*\n[-\s]+\n(.+)", string, re.S
         )
         if not preprocessed:
             return []
-        return re.findall(r'^(\S+)\s+(\S+)\s*$', preprocessed.group(1), re.M)
+        return re.findall(r"^(\S+)\s+(\S+)\s*$", preprocessed.group(1), re.M)
 
     def pkgs_info(self, *, no_output=True, no_tips=True, timeout=None):
         """
@@ -356,9 +362,9 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS['LIST']]
+        cmds = [self.interpreter, *_PIPCMDS["LIST"]]
         result, retcode = _execute_cmd(
-            cmds, '正在获取(包名, 版本)列表', no_output, no_tips, timeout
+            cmds, "正在获取(包名, 版本)列表", no_output, no_tips, timeout
         )
         if retcode or not result:
             return []
@@ -377,9 +383,9 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS['LIST']]
+        cmds = [self.interpreter, *_PIPCMDS["LIST"]]
         result, retcode = _execute_cmd(
-            cmds, '正在获取包名列表', no_output, no_tips, timeout
+            cmds, "正在获取包名列表", no_output, no_tips, timeout
         )
         if retcode or not result:
             return []
@@ -400,16 +406,16 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS['OUTDATED']]
+        cmds = [self.interpreter, *_PIPCMDS["OUTDATED"]]
         outdated_pkgs_info = []
         result, retcode = _execute_cmd(
-            cmds, '正在检查更新', no_output, no_tips, timeout
+            cmds, "正在检查更新", no_output, no_tips, timeout
         )
         if retcode or not result:
             return outdated_pkgs_info
-        result = result.strip().split('\n')
-        pt1 = r'^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$'
-        pt2 = r'^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$'
+        result = result.strip().split("\n")
+        pt1 = r"^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$"
+        pt2 = r"^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$"
         for pkg_ver_info in result:
             res = re.match(pt1, pkg_ver_info)
             if res:
@@ -424,7 +430,7 @@ class PyEnv:
     def upgrade_pip(
         self,
         *,
-        index_url='',
+        index_url="",
         no_output=True,
         no_tips=True,
         timeout=None,
@@ -442,15 +448,13 @@ class PyEnv:
         if not self.pip_ready:
             return False
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS['PIPUP']]
+        cmds = [self.interpreter, *_PIPCMDS["PIPUP"]]
         if index_url:
-            cmds.extend(('-i', index_url))
-        result, retcode = _execute_cmd(
-            cmds, '正在升级pip', no_output, no_tips, timeout
-        )
-        return (('pip',), not retcode)
+            cmds.extend(("-i", index_url))
+        retcode = _execute_cmd(cmds, "正在升级pip", no_output, no_tips, timeout)[1]
+        return (("pip",), not retcode)
 
-    def set_global_index(self, index_url=index_urls['opentuna']):
+    def set_global_index(self, index_url=index_urls["tencent"]):
         """
         设置pip全局镜像源地址。
         :param index_url: str, 镜像源地址，参数可省略。
@@ -460,10 +464,10 @@ class PyEnv:
         if not self.pip_ready or not index_url:
             return False
         if not isinstance(index_url, str):
-            raise ParamTypeError('镜像源地址参数的数据类型应为字符串。')
-        cmds = [self.interpreter, *_PIPCMDS['SETINDEX'], index_url]
+            raise ParamTypeError("镜像源地址参数的数据类型应为字符串。")
+        cmds = [self.interpreter, *_PIPCMDS["SETINDEX"], index_url]
         return not _execute_cmd(
-            cmds, tips='', no_output=True, no_tips=True, timeout=None
+            cmds, tips="", no_output=True, no_tips=True, timeout=None
         )[1]
 
     def get_global_index(self):
@@ -472,16 +476,16 @@ class PyEnv:
         :return: str, 当前系统pip全局镜像源地址。
         """
         if not self.pip_ready:
-            return ''
-        cmds = [self.interpreter, *_PIPCMDS['GETINDEX']]
+            return ""
+        cmds = [self.interpreter, *_PIPCMDS["GETINDEX"]]
         result, retcode = _execute_cmd(
-            cmds, '', no_output=True, no_tips=True, timeout=None
+            cmds, "", no_output=True, no_tips=True, timeout=None
         )
         if retcode:
-            return ''
+            return ""
         match_res = re.match(r"^global.index-url='(.+)'$", result)
         if not match_res:
-            return ''
+            return ""
         return match_res.group(1)
 
     def install(self, *names, **kwargs):
@@ -509,40 +513,52 @@ class PyEnv:
         """
         if not self.pip_ready or not names:
             return tuple()
-        install_pre = kwargs.get('pre', False)
-        index_url = kwargs.get('index_url', '')
-        timeout = kwargs.get('timeout', None)
-        upgrade = kwargs.get('upgrade', False)
-        no_tips = kwargs.get('no_tips', True)
-        no_output = kwargs.get('no_output', True)
-        install_user = kwargs.get('user', False)
-        compile_sc = kwargs.get('compile', 'auto')
-        upgrade_strategy = kwargs.get('strategy', None)
+        (
+            install_pre,
+            index_url,
+            timeout,
+            upgrade,
+            no_tips,
+            no_output,
+            install_user,
+            compile_sc,
+            upgrade_strategy,
+        ) = (
+            kwargs.get("pre", False),
+            kwargs.get("index_url", ""),
+            kwargs.get("timeout", None),
+            kwargs.get("upgrade", False),
+            kwargs.get("no_tips", True),
+            kwargs.get("no_output", True),
+            kwargs.get("user", False),
+            kwargs.get("compile", "auto"),
+            kwargs.get("strategy", None),
+        )
         if not all(isinstance(s, str) for s in names):
-            raise ParamTypeError('包名参数的数据类型应为字符串。')
+            raise ParamTypeError("包名参数的数据类型应为字符串。")
         if not isinstance(index_url, str):
-            raise ParamTypeError('镜像源地址参数数据类型应为字符串。')
+            raise ParamTypeError("镜像源地址参数数据类型应为字符串。")
         self.__check_timeout_num(timeout)
-        if upgrade_strategy not in (None, 'eager', 'needed'):
-            raise ParamValueError('strategy参数可选值为"eager"、"needed"或None。')
-        cmds = [self.interpreter, *_PIPCMDS['INSTALL'], *names]
+        if upgrade_strategy not in (None, "eager", "needed"):
+            raise ParamValueError("strategy参数可选值为'eager'、'needed'或None。")
+        cmds = [self.interpreter, *_PIPCMDS["INSTALL"], *names]
         if install_pre:
-            cmds.append('--pre')
+            cmds.append("--pre")
         if upgrade:
-            cmds.append('-U')
+            cmds.append("-U")
         if index_url:
-            cmds.extend(('-i', index_url))
+            cmds.extend(("-i", index_url))
         if install_user:
-            cmds.append('--user')
+            cmds.append("--user")
         if upgrade_strategy:
-            cmds.extend(('--upgrade-strategy', upgrade_strategy))
-        if compile_sc == 'auto':
+            cmds.extend(("--upgrade-strategy", upgrade_strategy))
+        if compile_sc == "auto":
             pass
         elif compile_sc:
-            cmds.append('--compile')
+            cmds.append("--compile")
         else:
-            cmds.append('--no-compile')
-        tips = '正在安装{}'.format(', '.join(names))
+            cmds.append("--no-compile")
+        tips = "正在安装{}".format(", ".join(names))
         return (
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
@@ -563,18 +579,136 @@ class PyEnv:
         """
         if not self.pip_ready or not names:
             return tuple()
-        timeout = kwargs.get('timeout', None)
-        no_tips = kwargs.get('no_tips', True)
-        no_output = kwargs.get('no_output', True)
+        timeout, no_tips, no_output = (
+            kwargs.get("timeout", None),
+            kwargs.get("no_tips", True),
+            kwargs.get("no_output", True),
+        )
         if not all(isinstance(s, str) for s in names):
-            raise ParamTypeError('包名参数的数据类型应为字符串。')
+            raise ParamTypeError("包名参数的数据类型应为字符串。")
         self.__check_timeout_num(timeout)
-        tips = '正在卸载{}'.format(', '.join(names))
-        cmds = [self.interpreter, *_PIPCMDS['UNINSTALL'], *names]
+        tips = "正在卸载{}".format(", ".join(names))
+        cmds = [self.interpreter, *_PIPCMDS["UNINSTALL"], *names]
         return (
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
         )
+
+    def download(self, *names, **kwargs):
+        """
+        下载指定的模块或包。
+        :param names: str, 不定长参数，包名，可同时传入多个包名，此参数必选。
+        :param no_deps: bool, 关键字参数，是否不同时下载names中的依赖库，默认False。
+        :param pre: bool, 关键字参数，如果最新版是预发行版或开发版，是否下载，默认False。
+        :param ignore_require_python: bool , 关键字参数，是否不检查该包与当前环境Python版本的兼容性，默认False。
+        :param dest: str, 关键字参数，下载文件的保存目录路径。如果参数值为None或不指定此参数，则默认下载至'/用户目录/Downloads/pip_downloads-xxxx'文件夹；如果dest的值不是完整路径，则下载至'用户目录/Downloads/'+ dest文件夹；如果dest为完整路径：如果dest是文件路径，则下载至该文件所在的文件夹，否则下载至该文件夹。如果路径不存在，将会尝试创建文件夹，创建失败则抛出PermissionError异常。
+        :param platform: tuple|list[str...], 仅下载与platform中列出的平台兼容的包，默认为None，即仅下载与当前系统兼容的安装包。
+        :param python_version: str, 关键字参数，包被下载前将与此参数指定的Python版本进行兼容性检查(如果ignore_require_python参数为False)。
+        :param implementation: str, 关键字参数，仅下载与implementation指定的解释器实现相兼容的包，默认为None，即下载与当前环境的解释器实现相兼容的包。
+        :param abis: tuple|list[str...], 关键字参数，仅下载符合参数abi指定的Python ABI的包，通常需要同时指定platform、python_version、implementation 3个参数。
+        :param index_url: str, 镜像源地址，默认为index_urls中的腾讯源。
+        :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
+        :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
+        :param timeout: int or float, 任务超时时长限制，单位为秒，可设为None表示无限制，默认为None。
+        :return: tuple(bool, str), 返回(是否下载成功, 文件保存路径)元组。如果下载失败(False)，则返回的文件保存路径为空字符串。
+        """
+        if not self.pip_ready or not names:
+            return tuple()
+        (
+            no_deps,
+            pre,
+            ignore_require_python,
+            dest,
+            platform,
+            python_version,
+            implementation,
+            abis,
+            index_url,
+            no_tips,
+            no_output,
+            timeout,
+        ) = (
+            kwargs.get("no_deps", False),
+            kwargs.get("pre", False),
+            kwargs.get("ignore_require_python", False),
+            kwargs.get("dest", None),
+            kwargs.get("platform", None),
+            kwargs.get("python_version", None),
+            kwargs.get("implementation", None),
+            kwargs.get("abis", None),
+            kwargs.get("index_url", None),
+            kwargs.get("no_tips", True),
+            kwargs.get("no_output", True),
+            kwargs.get("timeout", None),
+        )
+        NoneType = type(None)
+        if not all(isinstance(s, str) for s in names):
+            raise TypeError("包名参数类型应为字符串。")
+        if not isinstance(dest, (str, NoneType)):
+            raise TypeError("dest参数值的数据类型应为'str'或值应为'None'。")
+        if not isinstance(platform, (tuple, list, NoneType)):
+            raise TypeError("参数platform值类型应为'tuple'、'list'或值为'None'。")
+        if not (
+            isinstance(platform, NoneType)
+            or all(isinstance(s, str) for s in platform)
+        ):
+            raise TypeError("参数platform值应为一个包含字符串的元组或列表。")
+        if not isinstance(python_version, (str, NoneType)):
+            raise TypeError("参数python_version值类型应为'str'或值为'None'。")
+        if not isinstance(implementation, (str, NoneType)):
+            raise TypeError("参数implementation值类型应为'str'或值为'None'。")
+        if not isinstance(abis, (tuple, list, NoneType)):
+            raise TypeError("参数abi值类型应为'tuple'、'list'或值为'None'。")
+        if not (
+            isinstance(abis, NoneType) or all(isinstance(s, str) for s in abis)
+        ):
+            raise TypeError("参数abi值应为一个包含字符串的元组或列表。")
+        if not isinstance(index_url, (str, NoneType)):
+            raise TypeError("参数index_url值类型应为'str'或值为'None'。")
+        self.__check_timeout_num(timeout)
+        tips = "正在下载{}".format(", ".join(names))
+        download_dir_hash = os.path.join(
+            self.USER_DOWNLOADS, "pip_downloads-{}".format(abs(hash(tips)))
+        )
+        if dest:
+            dest = os.path.normpath(dest)
+            drive = os.path.splitdrive(dest)[0]
+            if not drive:
+                dest = os.path.join(self.USER_DOWNLOADS, dest)
+            elif dest == os.path.dirname(dest):
+                dest = download_dir_hash
+            elif os.path.isfile(dest):
+                dest = os.path.dirname(dest)
+                if dest == os.path.dirname(dest):
+                    dest = download_dir_hash
+        else:
+            dest = download_dir_hash
+        if not os.path.exists(dest):
+            try:
+                os.makedirs(dest)
+            except Exception:
+                raise PermissionError("文件夹<{}>创建失败。".format(dest))
+        cmds = [self.interpreter, *_PIPCMDS["DOWNLOAD"], *names]
+        if no_deps:
+            cmds.append("--no-deps")
+        if pre:
+            cmds.append("--pre")
+        if ignore_require_python:
+            cmds.append("--ignore-requires-python")
+        cmds.extend(("--dest", dest))
+        if platform:
+            for pf in platform:
+                cmds.extend(("--platform", pf))
+        if python_version:
+            cmds.extend(("--python-version", python_version))
+        if implementation:
+            cmds.extend(("--implementation", implementation))
+        if abis:
+            for abi in abis:
+                cmds.extend(("--abi", abi))
+        cmds.extend(("-i", index_url or index_urls["tencent"]))
+        retcode = not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
+        return (dest, retcode) if retcode else ("", retcode)
 
     def imports(self):
         """获取该Python环境下的包、模块的导入名列表。"""
@@ -597,7 +731,7 @@ class PyEnv:
         要查询的包名非str则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not isinstance(name, str):
-            raise ParamTypeError('参数name数据类型错误，数据类型应为str。')
+            raise ParamTypeError("参数name数据类型错误，数据类型应为str。")
         sys_paths, builtins = self.__read_sys_path_builtins()
         if not case:
             name = name.lower()
@@ -620,27 +754,27 @@ class PyEnv:
         """读取目标Python环境的sys.path和sys.builtin_module_names属性。"""
         if not self.env_path:
             return []
-        source_code = '''import sys
-print(sys.path[1:], "\\n", sys.builtin_module_names)'''
-        _path = os.path.join(self.cur_d, f'ReadSYSPB.{VERSION}')
+        source_code = """import sys
+print(sys.path[1:], "\\n", sys.builtin_module_names)"""
+        _path = os.path.join(self.CUR_DIR, f"ReadSYSPB.{VERSION}")
         if not os.path.isfile(_path):
-            if not os.path.exists(self.cur_d):
+            if not os.path.exists(self.CUR_DIR):
                 try:
-                    os.makedirs(self.cur_d)
+                    os.makedirs(self.CUR_DIR)
                 except Exception:
                     return [], ()
             try:
-                with open(_path, 'wt', encoding='utf-8') as py_file:
+                with open(_path, "wt", encoding="utf-8") as py_file:
                     py_file.write(source_code)
             except Exception:
                 return [], ()
         result, retcode = _execute_cmd(
-            (self.interpreter, _path), '', True, True, None
+            (self.interpreter, _path), "", True, True, None
         )
         if retcode or not result:
             return [], ()
         try:
-            paths, builtins = result.strip().split('\n')
+            paths, builtins = result.strip().split("\n")
             return eval(paths.strip()), eval(builtins.strip())
         except Exception:
             return [], ()
@@ -655,10 +789,10 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)'''
             return names_used_for_import
         py_modules, py_packages = list(), list()
         pattern_d = re.compile(
-            r'^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$'
+            r"^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$"
         )
-        pattern_t = re.compile(r'^[a-zA-Z_]?[0-9a-zA-Z_]+')
-        pattern_f = re.compile(r'^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$')
+        pattern_t = re.compile(r"^[a-zA-Z_]?[0-9a-zA-Z_]+")
+        pattern_f = re.compile(r"^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$")
         for mod_pkg in modules_and_pkgs:
             _path = os.path.join(pkg_dir, mod_pkg)
             if os.path.isfile(_path):
@@ -670,7 +804,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)'''
                 file_list = os.listdir(os.path.join(pkg_dir, package))
             except Exception:
                 continue
-            if '__init__.py' in file_list:
+            if "__init__.py" in file_list:
                 if package not in names_used_for_import:
                     # 有__init__.py文件的目录，其导入名即为目录名
                     names_used_for_import[package] = [package]
@@ -678,11 +812,11 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)'''
             match_object_d = pattern_d.match(package)
             if not match_object_d:
                 continue
-            top_level = os.path.join(pkg_dir, package, 'top_level.txt')
+            top_level = os.path.join(pkg_dir, package, "top_level.txt")
             if not os.path.isfile(top_level):
                 continue
             try:
-                with open(top_level, 'rt') as top_level:
+                with open(top_level, "rt") as top_level:
                     lines = top_level.readlines()
             except Exception:
                 continue
@@ -709,6 +843,3 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)'''
                 continue
             names_used_for_import[imp_name] = [imp_name]
         return names_used_for_import
-
-    def download(self, *names, **kwargs):
-        ...
