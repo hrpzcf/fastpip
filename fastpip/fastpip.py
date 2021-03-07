@@ -600,17 +600,17 @@ class PyEnv:
         :param names: str, 不定长参数，包名，可同时传入多个包名，此参数必选。
         :param no_deps: bool, 关键字参数，是否不同时下载names中的依赖库，默认False。
         :param pre: bool, 关键字参数，如果最新版是预发行版或开发版，是否下载，默认False。
-        :param ignore_require_python: bool , 关键字参数，是否不检查该包与当前环境Python版本的兼容性，默认False。
-        :param dest: str, 关键字参数，下载文件的保存目录路径。如果参数值为None或不指定此参数，则默认下载至'/用户目录/Downloads/pip_downloads-xxxx'文件夹；如果dest的值不是完整路径，则下载至'用户目录/Downloads/'+ dest文件夹；如果dest为完整路径：如果dest是文件路径，则下载至该文件所在的文件夹，否则下载至该文件夹。如果路径不存在，将会尝试创建文件夹，创建失败则抛出PermissionError异常。
+        :param ignore_require_python: bool , 关键字参数，是否不检查该包与python_version参数指定的版本的兼容性，默认False。
+        :param dest: str, 关键字参数，下载文件的保存目录路径。如果不指定此参数、参数值为None或值为磁盘根目录，则默认下载至'/用户目录/Downloads/pip_downloads-xxx'文件夹；如果dest的值不是完整路径，则下载至'用户目录/Downloads/'+ dest文件夹；如果dest为完整路径：如果dest是文件路径，则下载至该文件所在的文件夹，否则下载至该文件夹。如果路径不存在，将会尝试创建文件夹，创建失败则抛出PermissionError异常。
         :param platform: tuple|list[str...], 仅下载与platform中列出的平台兼容的包，默认为None，即仅下载与当前系统兼容的安装包。
-        :param python_version: str, 关键字参数，包被下载前将与此参数指定的Python版本进行兼容性检查(如果ignore_require_python参数为False)。
+        :param python_version: str, 关键字参数，下载与此参数指定的Python版本相兼容的包版本(要求ignore_require_python参数为False)。
         :param implementation: str, 关键字参数，仅下载与implementation指定的解释器实现相兼容的包，默认为None，即下载与当前环境的解释器实现相兼容的包。
         :param abis: tuple|list[str...], 关键字参数，仅下载符合参数abi指定的Python ABI的包，通常需要同时指定platform、python_version、implementation 3个参数。
-        :param index_url: str, 镜像源地址，默认为index_urls中的腾讯源。
+        :param index_url: str, 镜像源地址，默认为None。
         :param no_output: bool, 是否不在终端上显示命令输出，默认True(使用GUI时请确保此参数值为True)。
         :param no_tips: bool, 是否不在终端上显示等待提示信息，默认True(使用GUI时请确保此参数值为True)。
         :param timeout: int or float, 任务超时时长限制，单位为秒，可设为None表示无限制，默认为None。
-        :return: tuple(bool, str), 返回(是否下载成功, 文件保存路径)元组。如果下载失败(False)，则返回的文件保存路径为空字符串。
+        :return: tuple(bool, str), 返回(是否下载成功, 文件保存路径)元组。如果下载失败(False)，则返回的元组中，文件保存路径为空字符串。
         """
         if not self.pip_ready or not names:
             return tuple()
