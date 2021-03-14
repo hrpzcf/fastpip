@@ -38,7 +38,7 @@ def __fsize(*_fpath):
 
 def __paths_in_PATH():
     """
-    查找系统环境变量PATH中的Python目录路径列表。
+    ### 查找系统环境变量PATH中的Python目录路径列表。
     仅根据"目录中是否存在python.exe文件"进行简单查找。
     """
     python_paths_found = list()
@@ -60,7 +60,7 @@ def __paths_in_PATH():
 
 def cur_py_path():
     """
-    返回系统环境变量PATH中第一个Python目录路径。
+    ### 返回系统环境变量PATH中第一个Python目录路径。
     如果环境变量PATH中没有Python目录路径则返回空字符串。
     """
     PATH_paths = __paths_in_PATH()
@@ -92,7 +92,7 @@ def __list_fd(_path, t="b"):
 
 def __path_list(fd_name):
     """
-    判断指定路径是否为Python或Anaconda3目录，
+    ### 判断指定路径是否为Python或Anaconda3目录。
     将确认为Python目录的路径或Anaconda3内Python目录路径添加到列表并返回。
     """
     fd_name = os.path.normpath(fd_name)
@@ -113,7 +113,7 @@ def __path_list(fd_name):
 
 def all_py_paths():
     """
-    返回存在Python解释器的目录路径列表。
+    ### 返回存在Python解释器的目录路径列表。
     只在常用安装位置深入搜索两层目录，不会过于深入。
     """
     paths_interpreter_exists = __paths_in_PATH()
