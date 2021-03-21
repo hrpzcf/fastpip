@@ -28,7 +28,6 @@
 
 import os
 import re
-import sys
 from subprocess import (
     PIPE,
     STARTF_USESHOWWINDOW,
