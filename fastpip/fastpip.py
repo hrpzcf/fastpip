@@ -168,7 +168,7 @@ def parse_package_names(names):
 
 class PyEnv:
     """
-    ## Python环境类。
+    ### Python环境类。
 
     此类实例的绝大多数方法效果都将作用于该实例所指的Python环境，不对其他环境产生影响。
 
@@ -183,7 +183,7 @@ class PyEnv:
 
     def __init__(self, path=None):
         """
-        ## PyEnv类初始化方法。
+        ### PyEnv类初始化方法。
 
         ```
         :param path: str or None, 一个指向Python解释器所在目录的路径。
@@ -191,14 +191,14 @@ class PyEnv:
 
         PyEnv类有参数实例化时，如果参数path数据类型不是"str"或"None"则抛出PathParamError异常。
 
-        PyEnv类无参数实例化时或参数值为None实例化时，使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径，如果系统环境变量PATH中没有找到Python目录路径，则将路径属性env_path设置为空字符串。
+        PyEnv类无参数实例化时或参数值为None实例化时，使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径，如果系统环境变量PATH中没有找到Python目录路径，则将路径属性path及env_path设置为空字符串。
         """
         self.__env_path = self.__init_path(path)
 
     @staticmethod
     def __init_path(_path):
         """
-        ## 初始化Python路径。
+        ### 初始化Python路径。
 
         `如果路径参数不是字符串，则抛出PathParamError异常。`
 
@@ -213,7 +213,7 @@ class PyEnv:
     @property
     def path(self):
         """
-        ## 代表PyEnv类实例化时所传入的Python环境的绝对路径。
+        ### 代表PyEnv类实例化时所传入的Python环境的绝对路径。
 
         可重新赋值一个路径(字符串)以改变PyEnv类实例所指的Python环境。
 
@@ -230,7 +230,7 @@ class PyEnv:
     @property
     def env_path(self):
         """
-        ## 代表该Python环境目录路径的属性，该属性在获取的时候进行实时检查。
+        ### 代表该Python环境目录路径的属性，该属性在获取的时候进行实时检查。
 
         当PyEnv实例所指的Python环境无效(例如环境被卸载)时该属性值是空字符串，当环境恢复有效后，该属性值是该实例所指Python环境的路径(字符串)。
         """
@@ -239,7 +239,7 @@ class PyEnv:
     @property
     def interpreter(self):
         """
-        ## 属性值为Python解释器(python.exe)路径。
+        ### 属性值为Python解释器(python.exe)路径。
 
         PyEnv实例所指Python环境无效(例如环境被卸载)时值是空字符串。
         """
@@ -255,7 +255,7 @@ class PyEnv:
     @property
     def pip_ready(self):
         """
-        ## 代表该Python环境中pip是否已安装的属性。
+        ### 代表该Python环境中pip是否已安装的属性。
 
         值为True代表pip已安装，False代表未安装，获取属性值时实时检查是否已安装。
         """
@@ -311,7 +311,7 @@ class PyEnv:
 
     def pip_path(self):
         """
-        ## 根据env_path属性所指的Python安装目录获取pip可执行文件路径。
+        ### 根据env_path属性所指的Python安装目录获取pip可执行文件路径。
 
         如果Scripts目录不存在或无法打开则返回空字符串。
 
@@ -340,7 +340,7 @@ class PyEnv:
 
     def pip_info(self):
         """
-        ## 获取该目录的pip版本信息。
+        ### 获取该目录的pip版本信息。
 
         如果获取到pip版本信息，则返回一个PipInformation实例，可以通过访问实例的pipver、path、pyver属性分别获取到pip版本号、pip目录路径、该pip所在的Python环境版本号。
 
