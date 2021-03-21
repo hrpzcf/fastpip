@@ -205,7 +205,7 @@ class PyEnv:
         该异常可从fastpip.errors模块导入。
         """
         if isinstance(_path, str):
-            return os.path.normpath(_path)
+            return os.path.normpath(_path) if _path else ""
         if _path is None:
             return cur_py_path()
         raise PathParamError("路径参数类型错误。")
@@ -219,7 +219,7 @@ class PyEnv:
 
         赋值类型非str则抛出PathParamError异常，该异常可从fastpip.errors模块导入。
         """
-        return os.path.abspath(self.__env_path)
+        return os.path.abspath(self.__env_path) if self.__env_path else ""
 
     @path.setter
     def path(self, _path):
