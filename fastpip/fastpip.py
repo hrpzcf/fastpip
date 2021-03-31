@@ -282,8 +282,28 @@ class PyEnv:
             return True
         raise ParamTypeError("参数timeout值应为None、整数或浮点数。")
 
+    def __clean_old_scripts(self):
+        """清理旧的脚本。"""
+        try:
+            files = os.listdir(self.CUR_DIR)
+        except Exception:
+            return False
+        for name in files:
+            _path = os.path.join(self.CUR_DIR, name)
+            if (
+                os.path.isfile(_path)
+                and (name.startswith("ReadPyVER") or name.startswith("ReadSYSPB"))
+                and not name.endswith(VERSION)
+            ):
+                try:
+                    os.remove(_path)
+                except Exception:
+                    continue
+        return True
+
     def py_info(self):
         """获取当前环境Python版本信息。"""
+        self.__clean_old_scripts()
         info = "Python {} :: {} bit"
         if not self.env_path:
             return info.format("0.0.0", "?")
@@ -300,7 +320,13 @@ class PyEnv:
                     py_file.write(source_code)
             except Exception:
                 return info.format("0.0.0", "?")
-        result, retcode = _execute_cmd((self.interpreter, _path), "", True, True, None)
+        result, retcode = _execute_cmd(
+            (self.interpreter, _path),
+            "",
+            True,
+            True,
+            None,
+        )
         if retcode or not result:
             return info.format("0.0.0", "?")
         m_obj = re.match(r"(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)", result)
@@ -370,7 +396,11 @@ class PyEnv:
     @staticmethod
     def __clean_info(string):
         """清理pip包名列表命令的无关输出。"""
-        preprocessed = re.search(r"Package\s+Version\s*\n[-\s]+\n(.+)", string, re.S)
+        preprocessed = re.search(
+            r"Package\s+Version\s*\n[-\s]+\n(.+)",
+            string,
+            re.S,
+        )
         if not preprocessed:
             return []
         return re.findall(r"^(\S+)\s+(\S+)\s*$", preprocessed.group(1), re.M)
@@ -430,7 +460,13 @@ class PyEnv:
             return []
         self.__check_timeout_num(timeout)
         cmds = [self.interpreter, *_PIPCMDS["LIST"]]
-        result, retcode = _execute_cmd(cmds, "正在获取包名列表", no_output, no_tips, timeout)
+        result, retcode = _execute_cmd(
+            cmds,
+            "正在获取包名列表",
+            no_output,
+            no_tips,
+            timeout,
+        )
         if retcode or not result:
             return []
         return [n for n, _ in self.__clean_info(result)]
@@ -463,7 +499,13 @@ class PyEnv:
         self.__check_timeout_num(timeout)
         cmds = [self.interpreter, *_PIPCMDS["OUTDATED"]]
         outdated_pkgs_info = []
-        result, retcode = _execute_cmd(cmds, "正在检查更新", no_output, no_tips, timeout)
+        result, retcode = _execute_cmd(
+            cmds,
+            "正在检查更新",
+            no_output,
+            no_tips,
+            timeout,
+        )
         if retcode or not result:
             return outdated_pkgs_info
         result = result.strip().split("\n")
@@ -911,6 +953,7 @@ class PyEnv:
 
     def __read_sys_path_builtins(self):
         """读取目标Python环境的sys.path和sys.builtin_module_names属性。"""
+        self.__clean_old_scripts()
         if not self.env_path:
             return []
         source_code = """import sys
@@ -927,7 +970,13 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     py_file.write(source_code)
             except Exception:
                 return [], ()
-        result, retcode = _execute_cmd((self.interpreter, _path), "", True, True, None)
+        result, retcode = _execute_cmd(
+            (self.interpreter, _path),
+            "",
+            True,
+            True,
+            None,
+        )
         if retcode or not result:
             return [], ()
         try:
