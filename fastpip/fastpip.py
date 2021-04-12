@@ -39,9 +39,9 @@ from subprocess import (
 from threading import Thread
 from time import sleep
 
-from .versions import VERSION
 from .errors import *
 from .findpath import all_py_paths, cur_py_path
+from .versions import VERSION
 
 if os.name != "nt":
     raise UnsupportedPlatform("运行在不支持的平台上。")
@@ -50,6 +50,7 @@ _SHOW_RUNNING_TIPS = True
 _STARTUP = STARTUPINFO()
 _STARTUP.dwFlags = STARTF_USESHOWWINDOW
 _STARTUP.wShowWindow = SW_HIDE
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 预设镜像源：
 index_urls = {
@@ -127,6 +128,11 @@ def _tips_and_wait(tips):
 def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     """执行命令，输出等待提示语、输出命令执行结果并返回。"""
     global _SHOW_RUNNING_TIPS
+    try:
+        os.chdir(os.path.dirname(cmds[0]))
+        dir_switched = True
+    except Exception:
+        dir_switched = False
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
     try:
@@ -141,6 +147,9 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
         return_code = process.returncode
     except Exception:
         out_put, return_code = "", 1
+    finally:
+        if dir_switched:
+            os.chdir(_CURRENT_DIR)
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
@@ -174,9 +183,9 @@ class PyEnv:
     只有一个例外：使用set_global_index方法设置本机pip全局镜像源地址，对所有环境产生作用。
     """
 
-    CUR_DIR = os.path.dirname(os.path.abspath(__file__))
     USER_DOWNLOADS = os.path.join(
-        os.path.join(os.getenv("HOMEDRIVE", ""), os.getenv("HOMEPATH", "")) or CUR_DIR,
+        os.path.join(os.getenv("HOMEDRIVE", ""), os.getenv("HOMEPATH", ""))
+        or _CURRENT_DIR,
         "Downloads",
     )
 
@@ -285,11 +294,11 @@ class PyEnv:
     def __clean_old_scripts(self):
         """清理旧的脚本。"""
         try:
-            files = os.listdir(self.CUR_DIR)
+            files = os.listdir(_CURRENT_DIR)
         except Exception:
             return False
         for name in files:
-            _path = os.path.join(self.CUR_DIR, name)
+            _path = os.path.join(_CURRENT_DIR, name)
             if (
                 os.path.isfile(_path)
                 and (name.startswith("ReadPyVER") or name.startswith("ReadSYSPB"))
@@ -308,11 +317,11 @@ class PyEnv:
         if not self.env_path:
             return info.format("0.0.0", "?")
         source_code = "import sys;print(sys.version)"
-        _path = os.path.join(self.CUR_DIR, f"ReadPyVER.{VERSION}")
+        _path = os.path.join(_CURRENT_DIR, f"ReadPyVER.{VERSION}")
         if not os.path.isfile(_path):
-            if not os.path.exists(self.CUR_DIR):
+            if not os.path.exists(_CURRENT_DIR):
                 try:
-                    os.makedirs(self.CUR_DIR)
+                    os.makedirs(_CURRENT_DIR)
                 except Exception:
                     return info.format("0.0.0", "?")
             try:
@@ -379,9 +388,12 @@ class PyEnv:
         """
         if not self.pip_ready:
             return
-        cmds = [self.interpreter, *_PIPCMDS["INFO"]]
         result, retcode = _execute_cmd(
-            cmds, tips="", no_output=True, no_tips=True, timeout=None
+            (self.interpreter, *_PIPCMDS["INFO"]),
+            tips="",
+            no_output=True,
+            no_tips=True,
+            timeout=None,
         )
         if retcode or not result:
             return
@@ -428,9 +440,12 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS["LIST"]]
         result, retcode = _execute_cmd(
-            cmds, "正在获取(包名, 版本)列表", no_output, no_tips, timeout
+            (self.interpreter, *_PIPCMDS["LIST"]),
+            "正在获取(包名, 版本)列表",
+            no_output,
+            no_tips,
+            timeout,
         )
         if retcode or not result:
             return []
@@ -459,9 +474,8 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS["LIST"]]
         result, retcode = _execute_cmd(
-            cmds,
+            (self.interpreter, *_PIPCMDS["LIST"]),
             "正在获取包名列表",
             no_output,
             no_tips,
@@ -497,10 +511,9 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS["OUTDATED"]]
         outdated_pkgs_info = []
         result, retcode = _execute_cmd(
-            cmds,
+            (self.interpreter, *_PIPCMDS["OUTDATED"]),
             "正在检查更新",
             no_output,
             no_tips,
@@ -509,15 +522,15 @@ class PyEnv:
         if retcode or not result:
             return outdated_pkgs_info
         result = result.strip().split("\n")
-        pt1 = r"^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$"
-        pt2 = r"^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$"
+        pat_1 = r"^(\S+)\s+(\S+)\s+(\S+)\s+(sdist|wheel)$"
+        pat_2 = r"^(\S+) \((\S+)\) - Latest: (\S+) \[(sdist|wheel)\]$"
         for pkg_ver_info in result:
-            res = re.match(pt1, pkg_ver_info)
+            res = re.match(pat_1, pkg_ver_info)
             if res:
                 outdated_pkgs_info.append(res.groups())
         if not outdated_pkgs_info:
             for pkg_ver_info in result:
-                res = re.match(pt2, pkg_ver_info)
+                res = re.match(pat_2, pkg_ver_info)
                 if res:
                     outdated_pkgs_info.append(res.groups())
         return outdated_pkgs_info
@@ -575,9 +588,12 @@ class PyEnv:
             return False
         if not isinstance(index_url, str):
             raise ParamTypeError("镜像源地址参数的数据类型应为字符串。")
-        cmds = [self.interpreter, *_PIPCMDS["SETINDEX"], index_url]
         return not _execute_cmd(
-            cmds, tips="", no_output=True, no_tips=True, timeout=None
+            (self.interpreter, *_PIPCMDS["SETINDEX"], index_url),
+            tips="",
+            no_output=True,
+            no_tips=True,
+            timeout=None,
         )[1]
 
     def get_global_index(self):
@@ -590,9 +606,12 @@ class PyEnv:
         """
         if not self.pip_ready:
             return ""
-        cmds = [self.interpreter, *_PIPCMDS["GETINDEX"]]
         result, retcode = _execute_cmd(
-            cmds, "", no_output=True, no_tips=True, timeout=None
+            (self.interpreter, *_PIPCMDS["GETINDEX"]),
+            "",
+            no_output=True,
+            no_tips=True,
+            timeout=None,
         )
         if retcode:
             return ""
@@ -958,11 +977,11 @@ class PyEnv:
             return []
         source_code = """import sys
 print(sys.path[1:], "\\n", sys.builtin_module_names)"""
-        _path = os.path.join(self.CUR_DIR, f"ReadSYSPB.{VERSION}")
+        _path = os.path.join(_CURRENT_DIR, f"ReadSYSPB.{VERSION}")
         if not os.path.isfile(_path):
-            if not os.path.exists(self.CUR_DIR):
+            if not os.path.exists(_CURRENT_DIR):
                 try:
-                    os.makedirs(self.CUR_DIR)
+                    os.makedirs(_CURRENT_DIR)
                 except Exception:
                     return [], ()
             try:
