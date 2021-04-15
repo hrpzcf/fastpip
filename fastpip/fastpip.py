@@ -46,11 +46,11 @@ from .versions import VERSION
 if os.name != "nt":
     raise UnsupportedPlatform("运行在不支持的平台上。")
 
+_INIT_WK_DIR = os.getcwd()
 _SHOW_RUNNING_TIPS = True
 _STARTUP = STARTUPINFO()
 _STARTUP.dwFlags = STARTF_USESHOWWINDOW
 _STARTUP.wShowWindow = SW_HIDE
-_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 预设镜像源：
 index_urls = {
@@ -149,7 +149,7 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
         out_put, return_code = "", 1
     finally:
         if dir_switched:
-            os.chdir(_CURRENT_DIR)
+            os.chdir(_INIT_WK_DIR)
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
@@ -183,11 +183,9 @@ class PyEnv:
     只有一个例外：使用set_global_index方法设置本机pip全局镜像源地址，对所有环境产生作用。
     """
 
-    USER_DOWNLOADS = os.path.join(
-        os.path.join(os.getenv("HOMEDRIVE", ""), os.getenv("HOMEPATH", ""))
-        or _CURRENT_DIR,
-        "Downloads",
-    )
+    FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+    _HOME = os.path.join(os.getenv("HOMEDRIVE", ""), os.getenv("HOMEPATH", ""))
+    USER_DOWNLOADS = os.path.join(_HOME or _INIT_WK_DIR, "Downloads")
 
     def __init__(self, path=None):
         """
@@ -294,11 +292,11 @@ class PyEnv:
     def __clean_old_scripts(self):
         """清理旧的脚本。"""
         try:
-            files = os.listdir(_CURRENT_DIR)
+            files = os.listdir(self.FILE_DIR)
         except Exception:
             return False
         for name in files:
-            _path = os.path.join(_CURRENT_DIR, name)
+            _path = os.path.join(self.FILE_DIR, name)
             if (
                 os.path.isfile(_path)
                 and (name.startswith("ReadPyVER") or name.startswith("ReadSYSPB"))
@@ -317,11 +315,11 @@ class PyEnv:
         if not self.env_path:
             return info.format("0.0.0", "?")
         source_code = "import sys;print(sys.version)"
-        _path = os.path.join(_CURRENT_DIR, f"ReadPyVER.{VERSION}")
+        _path = os.path.join(self.FILE_DIR, f"ReadPyVER.{VERSION}")
         if not os.path.isfile(_path):
-            if not os.path.exists(_CURRENT_DIR):
+            if not os.path.exists(self.FILE_DIR):
                 try:
-                    os.makedirs(_CURRENT_DIR)
+                    os.makedirs(self.FILE_DIR)
                 except Exception:
                     return info.format("0.0.0", "?")
             try:
@@ -977,11 +975,11 @@ class PyEnv:
             return []
         source_code = """import sys
 print(sys.path[1:], "\\n", sys.builtin_module_names)"""
-        _path = os.path.join(_CURRENT_DIR, f"ReadSYSPB.{VERSION}")
+        _path = os.path.join(self.FILE_DIR, f"ReadSYSPB.{VERSION}")
         if not os.path.isfile(_path):
-            if not os.path.exists(_CURRENT_DIR):
+            if not os.path.exists(self.FILE_DIR):
                 try:
-                    os.makedirs(_CURRENT_DIR)
+                    os.makedirs(self.FILE_DIR)
                 except Exception:
                     return [], ()
             try:
