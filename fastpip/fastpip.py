@@ -41,6 +41,7 @@ from time import sleep
 
 from .errors import *
 from .findpath import all_py_paths, cur_py_path
+from .pathutil import PathCombO
 from .versions import VERSION
 
 if os.name != "nt":
@@ -128,28 +129,31 @@ def _tips_and_wait(tips):
 def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     """执行命令，输出等待提示语、输出命令执行结果并返回。"""
     global _SHOW_RUNNING_TIPS
-    try:
-        os.chdir(os.path.dirname(cmds[0]))
-        dir_switched = True
-    except Exception:
-        dir_switched = False
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
+    cmd_0 = cmds[0]
+    env = PathCombO(cmd_0).environment_variable()
+    cwd = (
+        os.path.dirname(cmd_0)
+        if os.path.isfile(cmd_0)
+        else cmds[0]
+        if os.path.isdir(cmd_0)
+        else None
+    )
     try:
         process = Popen(
             cmds,
             stdout=PIPE,
             stderr=STDOUT,
-            universal_newlines=True,
+            text=True,
             startupinfo=_STARTUP,
+            cwd=cwd,
+            env=env,
         )
         out_put = process.communicate(timeout=timeout)[0]
         return_code = process.returncode
     except Exception:
         out_put, return_code = "", 1
-    finally:
-        if dir_switched:
-            os.chdir(_INIT_WK_DIR)
     if not no_tips:
         _SHOW_RUNNING_TIPS = False
         tips_thread.join()
