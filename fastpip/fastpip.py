@@ -39,9 +39,9 @@ from subprocess import (
 from threading import Thread
 from time import sleep
 
+from .cmdutil import Command
 from .errors import *
 from .findpath import all_py_paths, cur_py_path
-from .pathutil import PathCombO
 from .versions import VERSION
 
 if os.name != "nt":
@@ -131,15 +131,8 @@ def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
     global _SHOW_RUNNING_TIPS
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
-    cmd_0 = cmds[0]
-    env = PathCombO(cmd_0).environment_variable()
-    cwd = (
-        os.path.dirname(cmd_0)
-        if os.path.isfile(cmd_0)
-        else cmds[0]
-        if os.path.isdir(cmd_0)
-        else None
-    )
+    env = cmds.environment()
+    cwd = os.path.dirname(cmds.executable)
     try:
         process = Popen(
             cmds,
@@ -332,11 +325,7 @@ class PyEnv:
             except Exception:
                 return info.format("0.0.0", "?")
         result, retcode = _execute_cmd(
-            (self.interpreter, _path),
-            "",
-            True,
-            True,
-            None,
+            Command(self.interpreter, _path), "", True, True, None
         )
         if retcode or not result:
             return info.format("0.0.0", "?")
@@ -391,7 +380,7 @@ class PyEnv:
         if not self.pip_ready:
             return
         result, retcode = _execute_cmd(
-            (self.interpreter, *_PIPCMDS["INFO"]),
+            Command(self.interpreter, *_PIPCMDS["INFO"]),
             tips="",
             no_output=True,
             no_tips=True,
@@ -443,7 +432,7 @@ class PyEnv:
             return []
         self.__check_timeout_num(timeout)
         result, retcode = _execute_cmd(
-            (self.interpreter, *_PIPCMDS["LIST"]),
+            Command(self.interpreter, *_PIPCMDS["LIST"]),
             "正在获取(包名, 版本)列表",
             no_output,
             no_tips,
@@ -477,7 +466,7 @@ class PyEnv:
             return []
         self.__check_timeout_num(timeout)
         result, retcode = _execute_cmd(
-            (self.interpreter, *_PIPCMDS["LIST"]),
+            Command(self.interpreter, *_PIPCMDS["LIST"]),
             "正在获取包名列表",
             no_output,
             no_tips,
@@ -515,7 +504,7 @@ class PyEnv:
         self.__check_timeout_num(timeout)
         outdated_pkgs_info = []
         result, retcode = _execute_cmd(
-            (self.interpreter, *_PIPCMDS["OUTDATED"]),
+            Command(self.interpreter, *_PIPCMDS["OUTDATED"]),
             "正在检查更新",
             no_output,
             no_tips,
@@ -569,7 +558,7 @@ class PyEnv:
         if not self.pip_ready:
             return False
         self.__check_timeout_num(timeout)
-        cmds = [self.interpreter, *_PIPCMDS["PIPUP"]]
+        cmds = Command(self.interpreter, *_PIPCMDS["PIPUP"])
         if index_url:
             cmds.extend(("-i", index_url))
         retcode = _execute_cmd(cmds, "正在升级pip", no_output, no_tips, timeout)[1]
@@ -591,7 +580,7 @@ class PyEnv:
         if not isinstance(index_url, str):
             raise ParamTypeError("镜像源地址参数的数据类型应为字符串。")
         return not _execute_cmd(
-            (self.interpreter, *_PIPCMDS["SETINDEX"], index_url),
+            Command(self.interpreter, *_PIPCMDS["SETINDEX"], index_url),
             tips="",
             no_output=True,
             no_tips=True,
@@ -609,7 +598,7 @@ class PyEnv:
         if not self.pip_ready:
             return ""
         result, retcode = _execute_cmd(
-            (self.interpreter, *_PIPCMDS["GETINDEX"]),
+            Command(self.interpreter, *_PIPCMDS["GETINDEX"]),
             "",
             no_output=True,
             no_tips=True,
@@ -696,7 +685,7 @@ class PyEnv:
         self.__check_timeout_num(timeout)
         if upgrade_strategy not in (None, "eager", "needed"):
             raise ParamValueError("strategy参数可选值为'eager'、'needed'或None。")
-        cmds = [self.interpreter, *_PIPCMDS["INSTALL"], *names]
+        cmds = Command(self.interpreter, *_PIPCMDS["INSTALL"], *names)
         if install_pre:
             cmds.append("--pre")
         if upgrade:
@@ -754,7 +743,7 @@ class PyEnv:
             raise ParamTypeError("包名参数的数据类型应为字符串。")
         self.__check_timeout_num(timeout)
         tips = "正在卸载{}".format(", ".join(names))
-        cmds = [self.interpreter, *_PIPCMDS["UNINSTALL"], *names]
+        cmds = Command(self.interpreter, *_PIPCMDS["UNINSTALL"], *names)
         return (
             names,
             not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1],
@@ -898,7 +887,7 @@ class PyEnv:
                 os.makedirs(dest)
             except Exception:
                 raise PermissionError("文件夹<{}>创建失败。".format(dest))
-        cmds = [self.interpreter, *_PIPCMDS["DOWNLOAD"], *names]
+        cmds = Command(self.interpreter, *_PIPCMDS["DOWNLOAD"], *names)
         if no_deps:
             cmds.append("--no-deps")
         if no_binary:
@@ -992,11 +981,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             except Exception:
                 return [], ()
         result, retcode = _execute_cmd(
-            (self.interpreter, _path),
-            "",
-            True,
-            True,
-            None,
+            Command(self.interpreter, _path), "", True, True, None
         )
         if retcode or not result:
             return [], ()
