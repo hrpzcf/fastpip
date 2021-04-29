@@ -1,7 +1,7 @@
 # coding: utf-8
 
 NAME = "fastpip"
-version = 0, 11, 2
+version = 0, 11, 3
 AUTHOR = "hrpzcf"
 EMAIL = "hrpzcf@foxmail.com"
 WEBSITE = "https://gitee.com/hrpzcf/fastpip"
