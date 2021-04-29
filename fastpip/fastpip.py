@@ -286,7 +286,7 @@ class PyEnv:
             return True
         raise ParamTypeError("参数timeout值应为None、整数或浮点数。")
 
-    def __clean_old_scripts(self):
+    def clean_old_scripts(self):
         """清理旧的脚本。"""
         try:
             files = os.listdir(self.FILE_DIR)
@@ -307,7 +307,7 @@ class PyEnv:
 
     def py_info(self):
         """获取当前环境Python版本信息。"""
-        self.__clean_old_scripts()
+        self.clean_old_scripts()
         info = "Python {} :: {} bit"
         if not self.env_path:
             return info.format("0.0.0", "?")
@@ -963,7 +963,7 @@ class PyEnv:
 
     def __read_sys_path_builtins(self):
         """读取目标Python环境的sys.path和sys.builtin_module_names属性。"""
-        self.__clean_old_scripts()
+        self.clean_old_scripts()
         if not self.env_path:
             return []
         source_code = """import sys
