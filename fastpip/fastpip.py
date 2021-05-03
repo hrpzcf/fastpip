@@ -869,17 +869,15 @@ class PyEnv:
         )
         if dest:
             dest = os.path.normpath(dest)
-            drive = os.path.splitdrive(dest)[0]
+            drive, *_ = os.path.splitdrive(dest)
             if not drive:
                 dest = os.path.join(self.USER_DOWNLOADS, dest)
-            elif dest == os.path.dirname(dest):
+            elif os.path.samefile(dest, os.path.dirname(dest)):
                 dest = download_dir_hash
             elif os.path.isfile(dest):
                 dest = os.path.dirname(dest)
-                if dest == os.path.dirname(dest):
+                if os.path.samefile(dest, os.path.dirname(dest)):
                     dest = download_dir_hash
-            else:
-                raise ParamValueError("无法解决的保存路径问题。")
         else:
             dest = download_dir_hash
         if not os.path.exists(dest):
