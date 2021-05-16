@@ -912,7 +912,7 @@ class PyEnv:
         if index_url:
             cmds.extend(("--index-url", index_url))
         retcode = not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
-        return (dest, retcode) if retcode else ("", retcode)
+        return (retcode, dest) if retcode else (retcode, "")
 
     def imports(self):
         """获取该Python环境下的包、模块的导入名列表。"""
