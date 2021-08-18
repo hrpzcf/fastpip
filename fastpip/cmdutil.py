@@ -35,7 +35,9 @@ class Command(list):
         return self.copy()
 
     def __repr__(self):
-        return "execute: {}\noptions: {}".format(self.__executable, " ".join(self[1:]))
+        return "executable: {}\noptions: {}".format(
+            self.__executable, " ".join(self[1:])
+        )
 
     def isconda(self):
         dir_path = os.path.dirname(self.executable)

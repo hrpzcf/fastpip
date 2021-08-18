@@ -998,8 +998,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         except Exception:
             return names_used_for_import
         py_modules, py_packages = list(), list()
-        pattern_d = re.compile(r"^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$")
         pattern_t = re.compile(r"^[a-zA-Z_]?[0-9a-zA-Z_]+")
+        pattern_d = re.compile(r"^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$")
         pattern_f = re.compile(r"^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$")
         for mod_pkg in modules_and_pkgs:
             _path = os.path.join(pkg_dir, mod_pkg)
