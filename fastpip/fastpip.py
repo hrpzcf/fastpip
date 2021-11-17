@@ -329,7 +329,7 @@ class PyEnv:
         )
         if retcode or not result:
             return info.format("0.0.0", "?")
-        m_obj = re.match(r"(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)", result)
+        m_obj = re.match(r"(\d+\.\d+\.\d+) (?:\(|\|).+(32|64) bit \(.+\)", result, re.S)
         if not m_obj:
             return info.format("0.0.0", "?")
         return info.format(*m_obj.groups())
