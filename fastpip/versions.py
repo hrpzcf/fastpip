@@ -1,7 +1,7 @@
 # coding: utf-8
 
 NAME = "fastpip"
-VERNUM = 0, 11, 5
+VERNUM = 0, 11, 6
 AUTHOR = "hrpzcf"
 EMAIL = "hrpzcf@foxmail.com"
 WEBSITE = "https://gitee.com/hrpzcf/fastpip"
