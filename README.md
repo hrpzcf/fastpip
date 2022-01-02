@@ -14,7 +14,7 @@
 > 打开命令窗口或PowerShell窗口，使用 pip 命令安装：
 
 ```cmd
-py -m pip install -U fastpip
+pip install -U fastpip
 ```
 
 <br /><br />
@@ -122,3 +122,11 @@ import fastpip
 
 help(fastpip)
 ```
+
+------
+
+<br />
+
+## 贡献者
+
+感谢 liangzai450 的贡献！
