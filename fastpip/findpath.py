@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from sys import version_info, winver
 
 from psutil import disk_partitions
 
@@ -8,11 +9,16 @@ from psutil import disk_partitions
 def __common_location():
     """生成各磁盘上的常见的Python安装目录路径列表。"""
     most_possible_path = list()
-    common_dir = (
+    cur_pyver = 'Python' + winver.replace('.', '')  # 查询当前Python版本
+    # 常用目录添加envs目录名称
+    lst_common_dir = [
         "Program Files",
         "Program Files (x86)",
         "ProgramData",
-    )
+        cur_pyver,
+        cur_pyver + '\envs'
+    ]
+    common_dir = tuple(lst_common_dir)
     most_possible_path.append(os.path.expanduser("~"))
     disk_parts = [dp.device for dp in disk_partitions()]
     most_possible_path.extend(disk_parts)
