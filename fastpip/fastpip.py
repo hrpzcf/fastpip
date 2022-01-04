@@ -57,6 +57,7 @@ _STARTUP.wShowWindow = SW_HIDE
 index_urls = {
     "aliyun": "https://mirrors.aliyun.com/pypi/simple/",  # 阿里源
     "tencent": "https://mirrors.cloud.tencent.com/pypi/simple",  # 腾讯源
+    "bfsu": "https://mirrors.bfsu.edu.cn/pypi/web/simple", ##北京外国语大学源
     "douban": "https://pypi.doubanio.com/simple/",  # 豆瓣源
     "opentuna": "https://opentuna.cn/pypi/web/simple",  # 清华源
     "tsinghua": "https://pypi.tuna.tsinghua.edu.cn/simple",  # 清华源
