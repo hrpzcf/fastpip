@@ -53,11 +53,17 @@ _STARTUP = STARTUPINFO()
 _STARTUP.dwFlags = STARTF_USESHOWWINDOW
 _STARTUP.wShowWindow = SW_HIDE
 
+VENV_CFG = "pyvenv.cfg"
+PYTHON_SCR = "scripts"
+PYTHON_EXE = "python.exe"
+PIP_INIT = "Lib/site-packages/pip/__init__.py"
+EMPTY_STR = ""
+
 # 预设镜像源：
 index_urls = {
     "aliyun": "https://mirrors.aliyun.com/pypi/simple/",  # 阿里源
     "tencent": "https://mirrors.cloud.tencent.com/pypi/simple",  # 腾讯源
-    "bfsu": "https://mirrors.bfsu.edu.cn/pypi/web/simple", ##北京外国语大学源
+    "bfsu": "https://mirrors.bfsu.edu.cn/pypi/web/simple",  # 北京外国语大学源
     "douban": "https://pypi.doubanio.com/simple/",  # 豆瓣源
     "opentuna": "https://opentuna.cn/pypi/web/simple",  # 清华源
     "tsinghua": "https://pypi.tuna.tsinghua.edu.cn/simple",  # 清华源
@@ -182,7 +188,9 @@ class PyEnv:
     """
 
     FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-    _HOME = os.path.join(os.getenv("HOMEDRIVE", ""), os.getenv("HOMEPATH", ""))
+    _HOME = os.path.join(
+        os.getenv("HOMEDRIVE", EMPTY_STR), os.getenv("HOMEPATH", EMPTY_STR)
+    )
     USER_DOWNLOADS = os.path.join(_HOME or _INIT_WK_DIR, "Downloads")
 
     def __init__(self, path=None):
@@ -197,6 +205,8 @@ class PyEnv:
 
         PyEnv类无参数实例化时或参数值为None实例化时，使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径，如果系统环境变量PATH中没有找到Python目录路径，则将路径属性path及env_path设置为空字符串。
         """
+        # 解释器是否在Scripts目录的标识
+        self.__in_scripts = False
         self.__env_path = self.__init_path(path)
 
     @staticmethod
@@ -209,7 +219,7 @@ class PyEnv:
         该异常可从fastpip.errors模块导入。
         """
         if isinstance(_path, str):
-            return os.path.normpath(_path) if _path else ""
+            return os.path.normpath(_path) if _path else EMPTY_STR
         if _path is None:
             return cur_py_path()
         raise PathParamError("路径参数类型错误。")
@@ -223,7 +233,7 @@ class PyEnv:
 
         赋值类型非str则抛出PathParamError异常，该异常可从fastpip.errors模块导入。
         """
-        return os.path.abspath(self.__env_path) if self.__env_path else ""
+        return os.path.abspath(self.__env_path) if self.__env_path else EMPTY_STR
 
     @path.setter
     def path(self, _path):
@@ -249,8 +259,10 @@ class PyEnv:
         """
         env_path = self.env_path
         if not env_path:
-            return ""
-        return os.path.join(env_path, "python.exe")
+            return EMPTY_STR
+        if self.__in_scripts:
+            return os.path.join(env_path, PYTHON_SCR, PYTHON_EXE)
+        return os.path.join(env_path, PYTHON_EXE)
 
     def __str__(self):
         location = self.env_path or "unknown location"
@@ -266,15 +278,20 @@ class PyEnv:
         env_path = self.env_path
         if not env_path:
             return False
-        return os.path.isfile(
-            os.path.join(env_path, "Lib", "site-packages", "pip", "__init__.py")
-        )
+        return os.path.isfile(os.path.join(env_path, PIP_INIT))
 
-    @staticmethod
-    def __check(_path):
+    def __check(self, _path):
         """检查参数path在当前是否是一个有效的Python目录路径。"""
-        if not os.path.isfile(os.path.join(_path, "python.exe")):
-            return ""
+        _path = os.path.abspath(_path)
+        if not os.path.isfile(os.path.join(_path, PYTHON_EXE)):
+            return EMPTY_STR
+        parent, script = os.path.split(_path)
+        if parent and script:
+            if script.lower() == PYTHON_SCR and os.path.isfile(
+                os.path.join(parent, VENV_CFG)
+            ):
+                self.__in_scripts = True
+                return os.path.normpath(parent)
         return os.path.normpath(_path)
 
     @staticmethod
@@ -349,12 +366,12 @@ class PyEnv:
         """
         env_path = self.env_path
         if not env_path:
-            return ""
+            return EMPTY_STR
         dir_pip_exists = os.path.join(env_path, "Scripts")
         try:
             dirs_and_files = os.listdir(dir_pip_exists)
         except Exception:
-            return ""
+            return EMPTY_STR
         for dir_or_file in dirs_and_files:
             if not os.path.isfile(os.path.join(dir_pip_exists, dir_or_file)):
                 continue
@@ -362,7 +379,7 @@ class PyEnv:
             if not match_obj:
                 continue
             return os.path.join(dir_pip_exists, match_obj.group())
-        return ""
+        return EMPTY_STR
 
     def pip_info(self):
         """
@@ -597,19 +614,19 @@ class PyEnv:
         ```
         """
         if not self.pip_ready:
-            return ""
+            return EMPTY_STR
         result, retcode = _execute_cmd(
             Command(self.interpreter, *_PIPCMDS["GETINDEX"]),
-            "",
+            EMPTY_STR,
             no_output=True,
             no_tips=True,
             timeout=None,
         )
         if retcode:
-            return ""
+            return EMPTY_STR
         match_res = re.match(r"^global.index-url='(.+)'$", result)
         if not match_res:
-            return ""
+            return EMPTY_STR
         return match_res.group(1)
 
     def install(self, *names, **kwargs):
@@ -670,7 +687,7 @@ class PyEnv:
             upgrade_strategy,
         ) = (
             kwargs.get("pre", False),
-            kwargs.get("index_url", ""),
+            kwargs.get("index_url", EMPTY_STR),
             kwargs.get("timeout", None),
             kwargs.get("upgrade", False),
             kwargs.get("no_tips", True),
@@ -913,7 +930,7 @@ class PyEnv:
         if index_url:
             cmds.extend(("--index-url", index_url))
         retcode = not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
-        return (retcode, dest) if retcode else (retcode, "")
+        return (retcode, dest) if retcode else (retcode, EMPTY_STR)
 
     def imports(self):
         """获取该Python环境下的包、模块的导入名列表。"""
@@ -980,7 +997,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             except Exception:
                 return [], ()
         result, retcode = _execute_cmd(
-            Command(self.interpreter, _path), "", True, True, None
+            Command(self.interpreter, _path), EMPTY_STR, True, True, None
         )
         if retcode or not result:
             return [], ()
