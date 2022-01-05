@@ -53,6 +53,7 @@ _STARTUP = STARTUPINFO()
 _STARTUP.dwFlags = STARTF_USESHOWWINDOW
 _STARTUP.wShowWindow = SW_HIDE
 
+# 一些常用量
 VENV_CFG = "pyvenv.cfg"
 PYTHON_SCR = "scripts"
 PYTHON_EXE = "python.exe"
@@ -198,7 +199,7 @@ class PyEnv:
         ### PyEnv类初始化方法。
 
         ```
-        :param path: str or None, 一个指向Python解释器所在目录的路径。
+        :param path: str or None, 一个指向Python解释器所在目录的路径，如果是venv创建的虚拟环境，该路径即可以是前者，也可以是Scripts目录的父目录。
         ```
 
         PyEnv类有参数实例化时，如果参数path数据类型不是"str"或"None"则抛出PathParamError异常。
@@ -284,7 +285,14 @@ class PyEnv:
         """检查参数path在当前是否是一个有效的Python目录路径。"""
         _path = os.path.abspath(_path)
         if not os.path.isfile(os.path.join(_path, PYTHON_EXE)):
+            # 检查venv虚拟环境
+            if os.path.isfile(os.path.join(_path, VENV_CFG)) and os.path.isfile(
+                os.path.join(_path, PYTHON_SCR, PYTHON_EXE)
+            ):
+                self.__in_scripts = True
+                return os.path.normpath(_path)
             return EMPTY_STR
+        # 检查venv虚拟环境(上级目录)
         parent, script = os.path.split(_path)
         if parent and script:
             if script.lower() == PYTHON_SCR and os.path.isfile(
