@@ -62,15 +62,15 @@ EMPTY_STR = ""
 
 # 预设镜像源：
 index_urls = {
-    "aliyun": "https://mirrors.aliyun.com/pypi/simple/",  # 阿里源
+    "aliyun": "https://mirrors.aliyun.com/pypi/simple",  # 阿里源
     "tencent": "https://mirrors.cloud.tencent.com/pypi/simple",  # 腾讯源
     "bfsu": "https://mirrors.bfsu.edu.cn/pypi/web/simple",  # 北京外国语大学源
-    "douban": "https://pypi.doubanio.com/simple/",  # 豆瓣源
+    "douban": "https://pypi.doubanio.com/simple",  # 豆瓣源
     "opentuna": "https://opentuna.cn/pypi/web/simple",  # 清华源
     "tsinghua": "https://pypi.tuna.tsinghua.edu.cn/simple",  # 清华源
     "huawei": "https://mirrors.huaweicloud.com/repository/pypi/simple",  # 华为源
-    "netease": "https://mirrors.163.com/pypi/simple/",  # 网易源
-    "pypi": "https://pypi.org/simple/",  # 官方源
+    "netease": "https://mirrors.163.com/pypi/simple",  # 网易源
+    "pypi": "https://pypi.org/simple",  # 官方源
 }
 
 # 部分pip命令
