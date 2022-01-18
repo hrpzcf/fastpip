@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 
 license = """ MIT License
 
@@ -22,18 +22,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
 
-from .errors import *
-from .fastpip import PyEnv, all_py_paths, cur_py_path, index_urls
-from .versions import *
-
 __all__ = [
     "all_py_paths",
     "cur_py_path",
     "index_urls",
+    "license",
     "ParamTypeError",
     "ParamValueError",
+    "parse_package_names",
     "PathParamError",
     "PyEnv",
     "UnsupportedPlatform",
-    "version",
+    "VERSION",
 ]
+
+
+from .__version__ import *
+from .core.fastpip import PyEnv, cur_py_path, index_urls, parse_package_names
+from .errors.errors import *
+from .utils.findpath import all_py_paths

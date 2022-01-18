@@ -1,5 +1,12 @@
 # coding: utf-8
 
+__all__ = [
+    "ParamTypeError",
+    "ParamValueError",
+    "PathParamError",
+    "UnsupportedPlatform",
+]
+
 
 class ParamTypeError(Exception):
     """参数数据类型异常"""
@@ -23,11 +30,3 @@ class UnsupportedPlatform(Exception):
     """运行在不支持的平台上"""
 
     pass
-
-
-__all__ = [
-    "ParamTypeError",
-    "ParamValueError",
-    "PathParamError",
-    "UnsupportedPlatform",
-]

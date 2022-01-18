@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 
 import os
 from sys import winver
 
 from psutil import disk_partitions
+
+from ..common.common import *
 
 
 def __common_location():
@@ -55,8 +57,8 @@ def __paths_in_PATH():
             continue
         PATH_path = os.path.normpath(PATH_path)
         if (
-            "python.exe" in PATH_path_files
-            and __fsize(PATH_path, "python.exe")
+            PYTHON_EXE in PATH_path_files
+            and __fsize(PATH_path, PYTHON_EXE)
             and PATH_path not in python_paths_found
         ):
             python_paths_found.append(PATH_path)
@@ -103,15 +105,15 @@ def __path_list(fd_name):
     fd_name = os.path.normpath(fd_name)
     python_env_paths = list()
     files = __list_fd(fd_name, "f")
-    if "python.exe" in files and __fsize(fd_name, "python.exe"):
+    if PYTHON_EXE in files and __fsize(fd_name, PYTHON_EXE):
         python_env_paths.append(fd_name)
-    if "_conda.exe" in files and __fsize(fd_name, "_conda.exe"):
-        env_d = os.path.join(fd_name, "envs")
+    if CONDA_EXE in files and __fsize(fd_name, CONDA_EXE):
+        env_d = os.path.join(fd_name, CONDA_ENVS)
         if not os.path.isdir(env_d):
             return python_env_paths
         for env_p in __list_fd(env_d, "d"):
             env_p = os.path.join(env_d, env_p)
-            if "python.exe" in __list_fd(env_p, "f"):
+            if PYTHON_EXE in __list_fd(env_p, "f"):
                 python_env_paths.append(env_p)
     return python_env_paths
 

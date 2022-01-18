@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 
 from fastpip import PyEnv, all_py_paths, cur_py_path, index_urls
 

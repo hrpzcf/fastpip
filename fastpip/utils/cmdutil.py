@@ -2,7 +2,7 @@
 
 import os
 
-from .errors import *
+from ..errors.errors import *
 
 
 class Command(list):
