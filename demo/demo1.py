@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
+
+sys.path = [os.path.dirname(sys.path[0])] + sys.path
 
 # 导入 PyEnv 类
 from fastpip import PyEnv
@@ -10,7 +13,12 @@ from fastpip import PyEnv
 # 参数_path是一个路径，指向Python解释器(python.exe)所在目录
 # 例如 env = PyEnv(r'C:\Anaconda3\envs\py35')
 
-env = PyEnv()  # 不带参数或者PyEnv(None)则使用系统环境变量PATH中第一个Py路径
+env = PyEnv()  # 不带参数或者PyEnv(None)则使用系统环境变量PATH中第一个Py目录
+
+# 验证pip是否就绪
+if not env.pip_ready:
+    print("当前环境[%s]没有安装pip。" % env)
+    sys.exit(0)
 
 
 # 调用PyEnv类实例的outdated方法获取可更新的包列表
@@ -23,6 +31,10 @@ env = PyEnv()  # 不带参数或者PyEnv(None)则使用系统环境变量PATH中
 # ...
 # ]
 outdated_pkgs = env.outdated(no_output=0, no_tips=0)
+
+if not outdated_pkgs:
+    print("当前环境[%s]没有需要更新的包。" % env)
+    sys.exit(0)
 
 # 询问是否安装所有可更新的包，回答非y则退出
 if input("\n确认更新？y/[n]：").lower() != "y":
