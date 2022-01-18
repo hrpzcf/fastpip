@@ -9,9 +9,5 @@ warn(
 )
 
 # 为了兼容改变fastpip目录结构前通过相对路径导入parse_package_names的程序
-__all__ = [
-    "all_py_paths",
-    "parse_package_names",
-]
 from .core.fastpip import parse_package_names
 from .utils.findpath import all_py_paths
