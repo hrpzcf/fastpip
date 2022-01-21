@@ -95,15 +95,19 @@ class Command(list):
             if shlvl == 1:
                 del preset_env_var["CONDA_PREFIX_1"]
             preset_env_var.update(os.environ)
-            conda_PATH = "{};{};{};{};{};{};{};".format(
-                _path,
-                os.path.join(_path, "Library", "mingw-w64", "bin"),
-                os.path.join(_path, "Library", "usr", "bin"),
-                os.path.join(_path, "Library", "bin"),
-                os.path.join(_path, "Scripts"),
-                os.path.join(_path, "bin"),
-                os.path.join(conda_main_path, "condabin"),
+            conda_PATH = os.pathsep.join(
+                (
+                    _path,
+                    os.path.join(_path, "Library", "mingw-w64", "bin"),
+                    os.path.join(_path, "Library", "usr", "bin"),
+                    os.path.join(_path, "Library", "bin"),
+                    os.path.join(_path, "Scripts"),
+                    os.path.join(_path, "bin"),
+                    os.path.join(conda_main_path, "condabin"),
+                )
             )
-            preset_env_var["PATH"] = conda_PATH + preset_env_var.get("PATH", "")
+            preset_env_var["PATH"] = os.pathsep.join(
+                (conda_PATH, preset_env_var.get("PATH", ""))
+            )
             return preset_env_var
         return os.environ
