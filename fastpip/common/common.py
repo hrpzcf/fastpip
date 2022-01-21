@@ -7,9 +7,10 @@ __all__ = [
     "PIP_INIT",
     "EMPTY_STR",
     "UNKNOWN_LOCATION",
-    "CONDA_ENVS",
-    "CONDA_EXE",
     "PYENV_SEP_STR",
+    "CONDA_ENVS",
+    "P_CONDA_EXE",
+    "M_CONDA_EXE",
 ]
 
 
@@ -21,4 +22,5 @@ EMPTY_STR = ""  # 空字符串
 UNKNOWN_LOCATION = "unknown location"  # Python环境位置未知时的显示名
 PYENV_SEP_STR = "@"  # PyEnv类实例的字符串形式中Python版本号与位置之间的分隔符
 CONDA_ENVS = "envs"  # Anaconda的虚拟环境目录名
-CONDA_EXE = "_conda.exe"  # Anaconda的可执行文件名
+P_CONDA_EXE = "_conda.exe"  # conda的可执行文件名
+M_CONDA_EXE = "conda.exe"  # conda的可执行文件名

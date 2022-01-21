@@ -2,6 +2,7 @@
 
 import os
 
+from ..common.common import *
 from ..errors.errors import *
 
 
@@ -42,7 +43,7 @@ class Command(list):
     def isconda(self):
         dir_path = os.path.dirname(self.executable)
         while True:
-            conda = os.path.join(dir_path, "_conda.exe")
+            conda = os.path.join(dir_path, P_CONDA_EXE)
             if os.path.isfile(conda):
                 return True
             uplevel = os.path.dirname(dir_path)
@@ -55,7 +56,7 @@ class Command(list):
         if not self.isconda():
             return False
         _path = os.path.dirname(self.executable)
-        temp = os.path.join(_path, "python.exe")
+        temp = os.path.join(_path, PYTHON_EXE)
         if not (os.path.isfile(temp) and os.access(temp, os.X_OK)):
             return False
         if os.path.basename(os.path.dirname(_path)) == "envs":
@@ -64,7 +65,7 @@ class Command(list):
 
     def condamain(self):
         _path = os.path.dirname(self.executable)
-        if os.path.isfile(os.path.join(_path, "_conda.exe")):
+        if os.path.isfile(os.path.join(_path, P_CONDA_EXE)):
             return _path
         if self.issubconda():
             return os.path.dirname(os.path.dirname(_path))
@@ -83,12 +84,12 @@ class Command(list):
                 "CONDA_EXE": os.path.join(
                     conda_main_path,
                     "Scripts",
-                    "conda.exe",
+                    M_CONDA_EXE,
                 ),
                 "CONDA_PREFIX": _path if self.issubconda() else conda_main_path,
                 "CONDA_PREFIX_1": conda_main_path,
                 "CONDA_PROMPT_MODIFIER": r"({}) ".format(name),
-                "CONDA_PYTHON_EXE": os.path.join(conda_main_path, "python.exe"),
+                "CONDA_PYTHON_EXE": os.path.join(conda_main_path, PYTHON_EXE),
                 "CONDA_SHLVL": r"{}".format(shlvl),
             }
             if shlvl == 1:

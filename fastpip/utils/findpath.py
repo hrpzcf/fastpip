@@ -107,7 +107,7 @@ def __path_list(fd_name):
     files = __list_fd(fd_name, "f")
     if PYTHON_EXE in files and __fsize(fd_name, PYTHON_EXE):
         python_env_paths.append(fd_name)
-    if CONDA_EXE in files and __fsize(fd_name, CONDA_EXE):
+    if P_CONDA_EXE in files and __fsize(fd_name, P_CONDA_EXE):
         env_d = os.path.join(fd_name, CONDA_ENVS)
         if not os.path.isdir(env_d):
             return python_env_paths
