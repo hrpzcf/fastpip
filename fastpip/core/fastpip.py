@@ -497,7 +497,7 @@ class PyEnv:
             return []
         return [n for n, _ in self.__clean_info(result)]
 
-    def outdated(self, *, no_output=True, no_tips=True, timeout=30):
+    def outdated(self, *, no_output=True, no_tips=True, timeout=60):
         """
         ### 获取可更新的包列表。
         列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组，如果没有获取到或者没有可更新的包，返回空列表。
