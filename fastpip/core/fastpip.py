@@ -23,7 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
-# Formatted with black 20.8b1.
+# Formatted with black.
 ################################################################################
 
 import os
@@ -46,7 +46,7 @@ from ..utils.cmdutil import Command
 from ..utils.findpath import cur_py_path
 
 if os.name != "nt":
-    raise UnsupportedPlatform("运行在不支持的平台上。")
+    raise UnsupportedPlatform("此模块不支持您当前正在使用的操作系统。")
 
 _INIT_WK_DIR = os.getcwd()
 _SHOW_RUNNING_TIPS = True
@@ -55,22 +55,23 @@ _STARTUP.dwFlags = STARTF_USESHOWWINDOW
 _STARTUP.wShowWindow = SW_HIDE
 
 
-# 预设镜像源：
+# 预设的PYPI官方源及国内镜像源：
 index_urls = {
-    "aliyun": "https://mirrors.aliyun.com/pypi/simple",  # 阿里源
-    "tencent": "https://mirrors.cloud.tencent.com/pypi/simple",  # 腾讯源
-    "bfsu": "https://mirrors.bfsu.edu.cn/pypi/web/simple",  # 北京外国语大学源
-    "douban": "https://pypi.doubanio.com/simple",  # 豆瓣源
-    "opentuna": "https://opentuna.cn/pypi/web/simple",  # 清华源
+    "pypi": "https://pypi.org/simple",  # PYPI官方源（国外）
     "tsinghua": "https://pypi.tuna.tsinghua.edu.cn/simple",  # 清华源
+    "tencent": "https://mirrors.cloud.tencent.com/pypi/simple",  # 腾讯源
+    "aliyun": "https://mirrors.aliyun.com/pypi/simple",  # 阿里源
+    "bfsu": "https://mirrors.bfsu.edu.cn/pypi/web/simple",  # 北京外国语大学源
+    "opentuna": "https://opentuna.cn/pypi/web/simple",  # 清华源
+    "douban": "https://pypi.doubanio.com/simple",  # 豆瓣源
     "huawei": "https://mirrors.huaweicloud.com/repository/pypi/simple",  # 华为源
     "netease": "https://mirrors.163.com/pypi/simple",  # 网易源
-    "pypi": "https://pypi.org/simple",  # 官方源
 }
 
-# 部分pip命令
+# 预置部分pip命令字符串元组格式
 _PREFIX = ("-m", "pip")
 _PIPCMDS = {
+    "ENSUREPIP": ("-m", "ensurepip"),
     "INSTALL": (*_PREFIX, "install"),
     "UNINSTALL": (*_PREFIX, "uninstall", "-y"),
     "LIST": (*_PREFIX, "list"),
@@ -202,8 +203,8 @@ class PyEnv:
         PyEnv类无参数实例化时或参数值为None实例化时，使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径，如果系统环境变量PATH中没有找到Python目录路径，则将路径属性path及env_path设置为空字符串。
         """
         # 解释器是否在Scripts目录的标识
-        self.__in_scripts = False
-        self.__env_path = self.__init_path(path)
+        self.__pyexe_in_scripts = False
+        self.__designated_path = self.__init_path(path)
 
     @staticmethod
     def __init_path(_path):
@@ -215,7 +216,7 @@ class PyEnv:
         该异常可从fastpip.errors模块导入。
         """
         if isinstance(_path, str):
-            return os.path.normpath(_path) if _path else EMPTY_STR
+            return os.path.normpath(_path)
         if _path is None:
             return cur_py_path()
         raise PathParamError("路径参数类型错误。")
@@ -229,13 +230,13 @@ class PyEnv:
 
         赋值类型非str则抛出PathParamError异常，该异常可从fastpip.errors模块导入。
         """
-        return os.path.abspath(self.__env_path) if self.__env_path else EMPTY_STR
+        return os.path.abspath(self.__designated_path)
 
     @path.setter
     def path(self, _path):
         if not isinstance(_path, str):
             raise PathParamError("路径参数类型错误。")
-        self.__env_path = os.path.normpath(_path)
+        self.__designated_path = os.path.normpath(_path)
 
     @property
     def env_path(self):
@@ -244,7 +245,7 @@ class PyEnv:
 
         当PyEnv实例所指的Python环境无效(例如环境被卸载)时该属性值是空字符串，当环境恢复有效后，该属性值是该实例所指Python环境的路径(字符串)。
         """
-        return self.__check(self.__env_path)
+        return self.__check(self.__designated_path)
 
     @property
     def interpreter(self):
@@ -256,7 +257,7 @@ class PyEnv:
         env_path = self.env_path
         if not env_path:
             return EMPTY_STR
-        if self.__in_scripts:
+        if self.__pyexe_in_scripts:
             return os.path.join(env_path, PYTHON_SCR, PYTHON_EXE)
         return os.path.join(env_path, PYTHON_EXE)
 
@@ -279,23 +280,25 @@ class PyEnv:
     def __check(self, _path):
         """检查参数path在当前是否是一个有效的Python目录路径。"""
         _path = os.path.abspath(_path)
+        # 传入的目录内没有python.exe可执行文件则进入此分支
         if not os.path.isfile(os.path.join(_path, PYTHON_EXE)):
-            # 检查venv虚拟环境
+            # 检查是否是venv虚拟环境的Scripts的上级目录
             if os.path.isfile(os.path.join(_path, VENV_CFG)) and os.path.isfile(
                 os.path.join(_path, PYTHON_SCR, PYTHON_EXE)
             ):
-                self.__in_scripts = True
-                return os.path.normpath(_path)
-            return EMPTY_STR
-        # 检查venv虚拟环境(上级目录)
+                self.__pyexe_in_scripts = True
+                return os.path.normpath(_path)  # 如是则规范化路径后返回
+            return EMPTY_STR  # 如非则路径是无效的，返回空字符串
+        # 传入的目录路径内有python.exe则进入此分支
         parent, script = os.path.split(_path)
         if parent and script:
+            # 先判断是否是venv虚拟环境的Scripts目录
             if script.lower() == PYTHON_SCR and os.path.isfile(
                 os.path.join(parent, VENV_CFG)
             ):
-                self.__in_scripts = True
-                return os.path.normpath(parent)
-        return os.path.normpath(_path)
+                self.__pyexe_in_scripts = True
+                return os.path.normpath(parent) # 如是则返回Scripts上级
+        return os.path.normpath(_path)  # 如非则可断定非特殊Python环境（？）
 
     @staticmethod
     def __check_timeout_num(timeout):
@@ -307,7 +310,7 @@ class PyEnv:
             return True
         raise ParamTypeError("参数timeout值应为None、整数或浮点数。")
 
-    def clean_old_scripts(self):
+    def cleanup_old_scripts(self):
         """清理旧的脚本。"""
         try:
             files = os.listdir(self.FILE_DIR)
@@ -328,7 +331,7 @@ class PyEnv:
 
     def py_info(self):
         """获取当前环境Python版本信息。"""
-        self.clean_old_scripts()
+        self.cleanup_old_scripts()
         info = "Python {} :: {} bit"
         if not self.env_path:
             return info.format("0.0.0", "?")
@@ -418,7 +421,7 @@ class PyEnv:
         return PipInformation(*res)
 
     @staticmethod
-    def __clean_info(string):
+    def __cleanup_info(string):
         """清理pip包名列表命令的无关输出。"""
         preprocessed = re.search(
             r"Package\s+Version\s*\n[-\s]+\n(.+)",
@@ -461,7 +464,7 @@ class PyEnv:
         )
         if retcode or not result:
             return []
-        return self.__clean_info(result)
+        return self.__cleanup_info(result)
 
     def pkg_names(self, *, no_output=True, no_tips=True, timeout=None):
         """
@@ -495,7 +498,7 @@ class PyEnv:
         )
         if retcode or not result:
             return []
-        return [n for n, _ in self.__clean_info(result)]
+        return [n for n, _ in self.__cleanup_info(result)]
 
     def outdated(self, *, no_output=True, no_tips=True, timeout=60):
         """
@@ -935,35 +938,61 @@ class PyEnv:
         retcode = not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
         return (retcode, dest) if retcode else (retcode, EMPTY_STR)
 
-    def imports(self):
-        """获取该Python环境下的包、模块的导入名列表。"""
+    def namesusedforimport(self):
+        """
+        ### 获取该Python环境下的包、模块的导入名列表。
+
+        此方法返回的名称列表中可能有重复项，且不保证列表中所有的名称用于import语句时都可以成功导入。
+
+        ```
+        return: list[str...]，可用于import语句的名称列表。
+        ```
+        """
         pkg_import_names = []
         if not self.env_path:
             return pkg_import_names
-        sys_paths, builtins = self.__read_sys_path_builtins()
+        sys_paths, builtins = self.__read_builtins_syspath()
         for sys_path in sys_paths:
-            for names in self.__from_sys_path(sys_path).values():
+            for names in self.__names_from_syspath(sys_path).values():
                 pkg_import_names.extend(names)
         pkg_import_names.extend(builtins)
         return pkg_import_names
 
-    def query(self, name, *, case=True):
+    def imports(self):
         """
-        ### 查询该环境下指定的包、模块对应的用于导入的名称。
+        ### 获取该Python环境下的包、模块的导入名列表。
+
+        此方法返回的名称列表中可能有重复项，且不保证列表中所有的名称用于import语句时都可以成功导入。
 
         ```
-        :param name: str, 要查询的包名或模块名。
+        return: list[str...]，可用于import语句的名称列表。
+        ```
+        """
+        # XXX 废弃方法
+        from warnings import warn
 
-        :param case: bool, 查询时是否对name大小写敏感。
+        warn("此方法名即将废弃，请使用'namesusedforimport'代替。", stacklevel=2)
+        return self.namesusedforimport()
 
-        :return: list[str...], 该包、模块的导入名列表。
+    def query(self, name, *, case=True):
+        """
+        ### 通过包名、模块名查询该环境下对应的用于import语句的名称。
+
+        此方法不保证返回的名称列表中所有的名称用于import语句时都可以成功导入。
+
+        ```
+        :param name: str, 想要查询的包名、模块名。
+
+        :param case: bool, 是否对name大小写敏感。
+
+        :return: list[str...], 该包、模块的用于import语句的名称列表。
         ```
 
         包名非str则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
         if not isinstance(name, str):
             raise ParamTypeError("参数name数据类型错误，数据类型应为str。")
-        sys_paths, builtins = self.__read_sys_path_builtins()
+        sys_paths, builtins = self.__read_builtins_syspath()
         if not case:
             name = name.lower()
             lbuiltins = [n.lower() for n in builtins]
@@ -971,18 +1000,19 @@ class PyEnv:
             return [builtins[lbuiltins.index(name)]]
         for sys_path in sys_paths:
             if case:
-                name_dict = self.__from_sys_path(sys_path)
+                name_dict = self.__names_from_syspath(sys_path)
             else:
                 name_dict = dict(
-                    (k.lower(), v) for k, v in self.__from_sys_path(sys_path).items()
+                    (k.lower(), v)
+                    for k, v in self.__names_from_syspath(sys_path).items()
                 )
             if name in name_dict:
                 return name_dict[name]
         return []
 
-    def __read_sys_path_builtins(self):
+    def __read_builtins_syspath(self):
         """读取目标Python环境的sys.path和sys.builtin_module_names属性。"""
-        self.clean_old_scripts()
+        self.cleanup_old_scripts()
         if not self.env_path:
             return []
         source_code = """import sys
@@ -1011,18 +1041,18 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return [], ()
 
     @staticmethod
-    def __from_sys_path(pkg_dir):
+    def __names_from_syspath(pkg_dir):
         """从sys.path列表中的一个路径获取可用于导入的模块、包名。"""
-        modules_and_pkgs, names_used_for_import = list(), dict()
+        modules_and_pkg_paths, names_used_for_import = list(), dict()
         try:
-            modules_and_pkgs.extend(os.listdir(pkg_dir))
+            modules_and_pkg_paths.extend(os.listdir(pkg_dir))
         except Exception:
             return names_used_for_import
         py_modules, py_packages = list(), list()
-        pattern_t = re.compile(r"^[a-zA-Z_]?[0-9a-zA-Z_]+")
-        pattern_d = re.compile(r"^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$")
-        pattern_f = re.compile(r"^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$")
-        for mod_pkg in modules_and_pkgs:
+        pattern_module = re.compile(r"^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$")
+        pattern_package = re.compile(r"^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$")
+        pattern_toplevel = re.compile(r"^[a-zA-Z_]?[0-9a-zA-Z_]+")
+        for mod_pkg in modules_and_pkg_paths:
             _path = os.path.join(pkg_dir, mod_pkg)
             if os.path.isfile(_path):
                 py_modules.append(mod_pkg)
@@ -1038,8 +1068,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     # 有__init__.py文件的目录，其导入名即为目录名
                     names_used_for_import[package] = [package]
                 continue
-            match_object_d = pattern_d.match(package)
-            if not match_object_d:
+            matched_obj_package = pattern_package.match(package)
+            if not matched_obj_package:
                 continue
             top_level = os.path.join(pkg_dir, package, "top_level.txt")
             if not os.path.isfile(top_level):
@@ -1049,24 +1079,41 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     lines = top_level.readlines()
             except Exception:
                 continue
-            names_for_import_top_level = list()
+            names_for_importing_toplevel = list()
             for l in lines:
-                m_obj_t = pattern_t.match(os.path.basename(l.strip()))
-                if not m_obj_t:
+                matched_obj_toplevel = pattern_toplevel.match(
+                    os.path.basename(l.strip())
+                )
+                if not matched_obj_toplevel:
                     continue
-                names_for_import_top_level.append(m_obj_t.group())
-            pkg_name = match_object_d.group(1)
+                names_for_importing_toplevel.append(matched_obj_toplevel.group())
+            pkg_name = matched_obj_package.group(1)
             if pkg_name not in names_used_for_import:
-                names_used_for_import[pkg_name] = names_for_import_top_level
+                names_used_for_import[pkg_name] = names_for_importing_toplevel
             else:
-                names_used_for_import[pkg_name].extend(names_for_import_top_level)
+                names_used_for_import[pkg_name].extend(names_for_importing_toplevel)
         for module in py_modules:
-            match_object_f = pattern_f.match(module)
-            if not match_object_f:
+            matched_obj_module = pattern_module.match(module)
+            if not matched_obj_module:
                 continue
-            imp_name = match_object_f.group(1)
+            for_importing = matched_obj_module.group(1)
             # 单文件模块形式下，导入名和剔除后缀后的模块名相同(后缀不仅指扩展名)
-            if imp_name in names_used_for_import:
+            if for_importing in names_used_for_import:
                 continue
-            names_used_for_import[imp_name] = [imp_name]
+            names_used_for_import[for_importing] = [for_importing]
         return names_used_for_import
+
+    def ensurepip(self, no_output=True, no_tips=True):
+        """
+        ### 此方法用于当环境中没有pip模块时使用副本恢复pip。
+
+        是否能恢复成功取决于该环境是否保存了pip副本。
+
+        请注意，恢复的pip并不一定是最新版，如果想更新'pip'，请接着调用'upgrade_pip'方法。
+        """
+        # TODO 确认pip.exe(增加Scripts目录的获取方法。)
+        cmds = Command(self.interpreter, *_PIPCMDS["ENSUREPIP"])
+        return not _execute_cmd(cmds, "正在恢复pip模块", no_output, no_tips, None)[1]
+
+    def scriptspath(self):
+        interpreter_path = self.install
