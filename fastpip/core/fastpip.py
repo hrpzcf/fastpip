@@ -28,6 +28,7 @@
 
 import os
 import re
+import shutil
 from subprocess import (
     PIPE,
     STARTF_USESHOWWINDOW,
@@ -297,7 +298,7 @@ class PyEnv:
                 os.path.join(parent, VENV_CFG)
             ):
                 self.__pyexe_in_scripts = True
-                return os.path.normpath(parent) # 如是则返回Scripts上级
+                return os.path.normpath(parent)  # 如是则返回Scripts上级
         return os.path.normpath(_path)  # 如非则可断定非特殊Python环境（？）
 
     @staticmethod
@@ -938,7 +939,7 @@ class PyEnv:
         retcode = not _execute_cmd(cmds, tips, no_output, no_tips, timeout)[1]
         return (retcode, dest) if retcode else (retcode, EMPTY_STR)
 
-    def namesusedforimport(self):
+    def names_for_import(self):
         """
         ### 获取该Python环境下的包、模块的导入名列表。
 
@@ -968,20 +969,20 @@ class PyEnv:
         return: list[str...]，可用于import语句的名称列表。
         ```
         """
-        # XXX 废弃方法
+        # XXX 弃用方法
         from warnings import warn
 
-        warn("此方法名即将废弃，请使用'namesusedforimport'代替。", stacklevel=2)
-        return self.namesusedforimport()
+        warn("此方法名即将弃用，请使用'names_for_import'代替。", stacklevel=2)
+        return self.names_for_import()
 
-    def query(self, name, *, case=True):
+    def query(self, module_or_pkg_name: str, *, case=True):
         """
         ### 通过包名、模块名查询该环境下对应的用于import语句的名称。
 
         此方法不保证返回的名称列表中所有的名称用于import语句时都可以成功导入。
 
         ```
-        :param name: str, 想要查询的包名、模块名。
+        :param module_or_pkg_name: str, 想要查询的包名、模块名。
 
         :param case: bool, 是否对name大小写敏感。
 
@@ -990,14 +991,36 @@ class PyEnv:
 
         包名非str则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
         """
-        if not isinstance(name, str):
+        # XXX 弃用方法
+        from warnings import warn
+
+        warn("此方法名即将弃用，请使用'query_for_import'代替。", stacklevel=2)
+        return self.query_for_import(module_or_pkg_name, case)
+
+    def query_for_import(self, module_or_pkg_name: str, *, case=True):
+        """
+        ### 通过包名、模块名查询该环境下对应的用于import语句的名称。
+
+        此方法不保证返回的名称列表中所有的名称用于import语句时都可以成功导入。
+
+        ```
+        :param module_or_pkg_name: str, 想要查询的包名、模块名。
+
+        :param case: bool, 是否对name大小写敏感。
+
+        :return: list[str...], 该包、模块的用于import语句的名称列表。
+        ```
+
+        包名非str则抛出ParamTypeError异常，该异常可从fastpip.errors模块导入。
+        """
+        if not isinstance(module_or_pkg_name, str):
             raise ParamTypeError("参数name数据类型错误，数据类型应为str。")
         sys_paths, builtins = self.__read_builtins_syspath()
         if not case:
-            name = name.lower()
+            module_or_pkg_name = module_or_pkg_name.lower()
             lbuiltins = [n.lower() for n in builtins]
-        if name in lbuiltins:
-            return [builtins[lbuiltins.index(name)]]
+        if module_or_pkg_name in lbuiltins:
+            return [builtins[lbuiltins.index(module_or_pkg_name)]]
         for sys_path in sys_paths:
             if case:
                 name_dict = self.__names_from_syspath(sys_path)
@@ -1006,8 +1029,8 @@ class PyEnv:
                     (k.lower(), v)
                     for k, v in self.__names_from_syspath(sys_path).items()
                 )
-            if name in name_dict:
-                return name_dict[name]
+            if module_or_pkg_name in name_dict:
+                return name_dict[module_or_pkg_name]
         return []
 
     def __read_builtins_syspath(self):
@@ -1111,9 +1134,31 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
 
         请注意，恢复的pip并不一定是最新版，如果想更新'pip'，请接着调用'upgrade_pip'方法。
         """
-        # TODO 确认pip.exe(增加Scripts目录的获取方法。)
+        if not self.env_path:
+            return False
+        tips = "正在确认或恢复pip模块"
+        scripts_dir_path = self.scripts_path()
+        pipexe_path = os.path.join(scripts_dir_path, PIP_EXE)
+        pip3exe_path = os.path.join(scripts_dir_path, "pip3.exe")
         cmds = Command(self.interpreter, *_PIPCMDS["ENSUREPIP"])
-        return not _execute_cmd(cmds, "正在恢复pip模块", no_output, no_tips, None)[1]
+        bool_res = not _execute_cmd(cmds, tips, no_output, no_tips, None)[1]
+        if (
+            bool_res
+            and os.path.isfile(pip3exe_path)
+            and (not os.path.isfile(pipexe_path))
+        ):
+            try:
+                shutil.copy(pip3exe_path, pipexe_path)
+            except Exception:
+                pass
+        return bool_res
 
-    def scriptspath(self):
-        interpreter_path = self.install
+    def scripts_path(self):
+        """
+        ### 返回Python环境的Scripts目录的路径。
+
+        如果Python环境无效，则返回空字符串。
+        #"""
+        if not self.env_path:
+            return EMPTY_STR
+        return os.path.join(self.env_path, PYTHON_SCR)
