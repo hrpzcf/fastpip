@@ -3,8 +3,8 @@
 __all__ = ["NAME", "AUTHOR", "EMAIL", "WEBSITE", "VERSION", "VERNUM"]
 
 NAME = "fastpip"
-VERNUM = 0, 12, 2
+VERNUM = 0, 13, 0
 AUTHOR = "hrpzcf"
 EMAIL = "hrpzcf@foxmail.com"
-WEBSITE = "https://gitee.com/hrpzcf/fastpip"
+WEBSITE = "https://github.com/hrpzcf/fastpip"
 VERSION = ".".join(map(str, VERNUM)) + ".dev0"

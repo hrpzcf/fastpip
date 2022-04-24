@@ -86,7 +86,7 @@ _PIPCMDS = {
 
 
 class PipInformation:
-    """PipInformation类仅供内部使用。"""
+    """### pip 信息类。"""
 
     def __init__(self, pipver, path, pyver):
         self.__path = path
@@ -114,7 +114,7 @@ class PipInformation:
 
 
 def _tips_and_wait(tips):
-    """打印等待中提示信息，返回线程实例。"""
+    """### 打印等待中提示信息，返回线程实例。"""
 
     def _print_tips(tips):
         global _SHOW_RUNNING_TIPS
@@ -132,7 +132,7 @@ def _tips_and_wait(tips):
 
 
 def _execute_cmd(cmds, tips, no_output, no_tips, timeout):
-    """执行命令，输出等待提示语、输出命令执行结果并返回。"""
+    """### 执行命令，输出等待提示语、输出命令执行结果并返回。"""
     global _SHOW_RUNNING_TIPS
     if not no_tips:
         tips_thread = _tips_and_wait(tips)
@@ -279,7 +279,7 @@ class PyEnv:
         return os.path.isfile(os.path.join(env_path, PIP_INIT))
 
     def __check(self, _path):
-        """检查参数path在当前是否是一个有效的Python目录路径。"""
+        """### 检查参数path在当前是否是一个有效的Python目录路径。"""
         _path = os.path.abspath(_path)
         # 传入的目录内没有python.exe可执行文件则进入此分支
         if not os.path.isfile(os.path.join(_path, PYTHON_EXE)):
@@ -312,7 +312,7 @@ class PyEnv:
         raise ParamTypeError("参数timeout值应为None、整数或浮点数。")
 
     def cleanup_old_scripts(self):
-        """清理旧的脚本。"""
+        """### 清理旧的脚本。"""
         try:
             files = os.listdir(self.FILE_DIR)
         except Exception:
@@ -331,7 +331,7 @@ class PyEnv:
         return True
 
     def py_info(self):
-        """获取当前环境Python版本信息。"""
+        """### 获取当前环境Python版本信息。"""
         self.cleanup_old_scripts()
         info = "Python {} :: {} bit"
         if not self.env_path:
