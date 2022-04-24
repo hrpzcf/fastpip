@@ -7,4 +7,4 @@ VERNUM = 0, 13, 0
 AUTHOR = "hrpzcf"
 EMAIL = "hrpzcf@foxmail.com"
 WEBSITE = "https://github.com/hrpzcf/fastpip"
-VERSION = ".".join(map(str, VERNUM)) + ".dev0"
+VERSION = ".".join(map(str, VERNUM))
