@@ -34,10 +34,10 @@ __all__ = [
     "PyEnv",
     "UnsupportedPlatform",
     "VERSION",
+    "PipInformation",
 ]
 
-
 from .__version__ import *
-from .core.fastpip import PyEnv, cur_py_path, index_urls, parse_package_names
+from .core.fastpip import PipInformation, PyEnv, index_urls, parse_package_names
 from .errors.errors import *
-from .utils.findpath import all_py_paths
+from .utils.findpath import all_py_paths, cur_py_path
