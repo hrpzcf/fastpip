@@ -287,10 +287,10 @@ class PyEnv:
                 return os.path.normpath(_path)  # 如是则规范化路径后返回
             return EMPTY_STR  # 如非则路径是无效的，返回空字符串
         # 传入的目录路径内有python.exe则进入此分支
-        parent, script = os.path.split(_path)
-        if parent and script:
+        parent, scripts = os.path.split(_path)
+        if parent and scripts:
             # 先判断是否是venv虚拟环境的Scripts目录
-            if script.lower() == PYTHON_SCR and os.path.isfile(
+            if scripts.lower() == PYTHON_SCR.lower() and os.path.isfile(
                 os.path.join(parent, VENV_CFG)
             ):
                 self.__pyexe_in_scripts = True
