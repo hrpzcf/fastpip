@@ -1025,10 +1025,12 @@ class PyEnv:
             raise ParamTypeError("参数name数据类型错误，数据类型应为str。")
         sys_paths, builtins = self.__read_syspath_builtins()
         if not case:
+            builtins_cased = [n.lower() for n in builtins]
             module_or_pkg_name = module_or_pkg_name.lower()
-            lbuiltins = [n.lower() for n in builtins]
-        if module_or_pkg_name in lbuiltins:
-            return [builtins[lbuiltins.index(module_or_pkg_name)]]
+        else:
+            builtins_cased = builtins
+        if module_or_pkg_name in builtins_cased:
+            return [builtins[builtins_cased.index(module_or_pkg_name)]]
         for sys_path in sys_paths:
             if case:
                 name_dict = self.__names_from_syspath(sys_path)
