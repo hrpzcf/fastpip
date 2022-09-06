@@ -941,7 +941,7 @@ class PyEnv:
 
     def names_for_import(self):
         """
-        ### 获取该Python环境下的包、模块的导入名列表。
+        ### 获取本Python环境下的包/模块可用于import语句的名称列表。
 
         此方法返回的名称列表中可能有重复项，且不保证列表中所有的名称用于import语句时都可以成功导入。
 
@@ -952,7 +952,7 @@ class PyEnv:
         pkg_import_names = []
         if not self.env_path:
             return pkg_import_names
-        sys_paths, builtins = self.__read_builtins_syspath()
+        sys_paths, builtins = self.__read_syspath_builtins()
         for sys_path in sys_paths:
             for names in self.__names_from_syspath(sys_path).values():
                 pkg_import_names.extend(names)
@@ -961,7 +961,7 @@ class PyEnv:
 
     def imports(self):
         """
-        ### 获取该Python环境下的包、模块的导入名列表。
+        ### 获取本Python环境下的包/模块可用于import语句的名称列表。
 
         此方法返回的名称列表中可能有重复项，且不保证列表中所有的名称用于import语句时都可以成功导入。
 
@@ -977,14 +977,18 @@ class PyEnv:
 
     def query(self, module_or_pkg_name: str, *, case=True):
         """
-        ### 通过包名、模块名查询该环境下对应的用于import语句的名称。
+        ### 通过包名/模块的发布名称查询该包/模块用于import语句的名称。
+
+        例如，pywin32是一个Windows API库的发布名称，使用时是import win32api、import win32con等，
+
+        此方法可以输入pywin32作为module_or_pkg_name参数，查询得到['win32api', 'win32con'...]这样的结果。
 
         此方法不保证返回的名称列表中所有的名称用于import语句时都可以成功导入。
 
         ```
         :param module_or_pkg_name: str, 想要查询的包名、模块名。
 
-        :param case: bool, 是否对name大小写敏感。
+        :param case: bool, 是否对module_or_pkg_name大小写敏感。
 
         :return: list[str...], 该包、模块的用于import语句的名称列表。
         ```
@@ -999,14 +1003,18 @@ class PyEnv:
 
     def query_for_import(self, module_or_pkg_name: str, *, case=True):
         """
-        ### 通过包名、模块名查询该环境下对应的用于import语句的名称。
+        ### 通过包名/模块的发布名称查询该包/模块用于import语句的名称。
+
+        例如，pywin32是一个Windows API库的发布名称，使用时是import win32api、import win32con等，
+
+        此方法可以输入pywin32作为module_or_pkg_name参数，查询得到['win32api', 'win32con'...]这样的结果。
 
         此方法不保证返回的名称列表中所有的名称用于import语句时都可以成功导入。
 
         ```
         :param module_or_pkg_name: str, 想要查询的包名、模块名。
 
-        :param case: bool, 是否对name大小写敏感。
+        :param case: bool, 是否对module_or_pkg_name大小写敏感。
 
         :return: list[str...], 该包、模块的用于import语句的名称列表。
         ```
@@ -1015,7 +1023,7 @@ class PyEnv:
         """
         if not isinstance(module_or_pkg_name, str):
             raise ParamTypeError("参数name数据类型错误，数据类型应为str。")
-        sys_paths, builtins = self.__read_builtins_syspath()
+        sys_paths, builtins = self.__read_syspath_builtins()
         if not case:
             module_or_pkg_name = module_or_pkg_name.lower()
             lbuiltins = [n.lower() for n in builtins]
@@ -1033,7 +1041,7 @@ class PyEnv:
                 return name_dict[module_or_pkg_name]
         return []
 
-    def __read_builtins_syspath(self):
+    def __read_syspath_builtins(self):
         """读取目标Python环境的sys.path和sys.builtin_module_names属性。"""
         self.cleanup_old_scripts()
         if not self.env_path:
@@ -1064,26 +1072,30 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return [], ()
 
     @staticmethod
-    def __names_from_syspath(pkg_dir):
-        """从sys.path列表中的一个路径获取可用于导入的模块、包名。"""
-        modules_and_pkg_paths, names_used_for_import = list(), dict()
+    def __names_from_syspath(packages_dir):
+        """
+        从sys.path列表中的一个路径获取可用于导入的模块/包名。
+
+        返回值：dict[模块发布名: [导入名...]...]
+        """
+        modules_and_pkgs_path, names_used_for_import = list(), dict()
         try:
-            modules_and_pkg_paths.extend(os.listdir(pkg_dir))
+            modules_and_pkgs_path.extend(os.listdir(packages_dir))
         except Exception:
             return names_used_for_import
         py_modules, py_packages = list(), list()
         pattern_module = re.compile(r"^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$")
         pattern_package = re.compile(r"^([0-9a-zA-Z_.]+)-.+(?:\.dist-info|\.egg-info)$")
         pattern_toplevel = re.compile(r"^[a-zA-Z_]?[0-9a-zA-Z_]+")
-        for mod_pkg in modules_and_pkg_paths:
-            _path = os.path.join(pkg_dir, mod_pkg)
+        for mod_pkg in modules_and_pkgs_path:
+            _path = os.path.join(packages_dir, mod_pkg)
             if os.path.isfile(_path):
                 py_modules.append(mod_pkg)
             elif os.path.isdir(_path):
                 py_packages.append(mod_pkg)
         for package in py_packages:
             try:
-                file_list = os.listdir(os.path.join(pkg_dir, package))
+                file_list = os.listdir(os.path.join(packages_dir, package))
             except Exception:
                 continue
             if "__init__.py" in file_list:
@@ -1094,7 +1106,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             matched_obj_package = pattern_package.match(package)
             if not matched_obj_package:
                 continue
-            top_level = os.path.join(pkg_dir, package, "top_level.txt")
+            top_level = os.path.join(packages_dir, package, "top_level.txt")
             if not os.path.isfile(top_level):
                 continue
             try:
