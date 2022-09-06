@@ -29,16 +29,9 @@
 import os
 import re
 import shutil
-from subprocess import (
-    PIPE,
-    STARTF_USESHOWWINDOW,
-    STARTUPINFO,
-    STDOUT,
-    SW_HIDE,
-    Popen,
-)
+import time
+from subprocess import PIPE, STARTF_USESHOWWINDOW, STARTUPINFO, STDOUT, SW_HIDE, Popen
 from threading import Thread
-from time import sleep
 
 from ..__version__ import VERSION
 from ..common.common import *  # 一些常用量
@@ -122,7 +115,7 @@ def _tips_and_wait(tips):
         while _SHOW_RUNNING_TIPS:
             print("{}{}{}".format(tips, dot * num, "   "), end="\r")
             num = 0 if num == 3 else num + 1
-            sleep(0.5)
+            time.sleep(0.5)
         _SHOW_RUNNING_TIPS = True
         print("{}".format("  " * (len(tips) + 3)), end="\r")
 
@@ -190,6 +183,7 @@ class PyEnv:
     )
     USER_DOWNLOADS = os.path.join(_HOME or _INIT_WK_DIR, "Downloads")
     FILE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cache_refresh_maximum_interval = 3
 
     def __init__(self, path=None):
         """
@@ -203,9 +197,11 @@ class PyEnv:
 
         PyEnv类无参数实例化时或参数值为None实例化时，使用cur_py_path函数选取系统环境变量PATH中的首个Python目录路径，如果系统环境变量PATH中没有找到Python目录路径，则将路径属性path及env_path设置为空字符串。
         """
+        self.__time_last_activity = time.time()
         # 解释器是否在Scripts目录的标识
         self.__pyexe_in_scripts = False
         self.__designated_path = self.__init_path(path)
+        self.__cache_pkgs_importables = dict()
 
     @staticmethod
     def __init_path(_path):
@@ -946,17 +942,17 @@ class PyEnv:
         此方法返回的名称列表中可能有重复项，且不保证列表中所有的名称用于import语句时都可以成功导入。
 
         ```
-        return: list[str...]，可用于import语句的名称列表。
+        return: set[str...]，可用于import语句的名称集合。
         ```
         """
-        pkg_import_names = []
+        pkg_import_names = set()
         if not self.env_path:
             return pkg_import_names
         sys_paths, builtins = self.__read_syspath_builtins()
         for sys_path in sys_paths:
-            for names in self.packages_importables_from_syspath(sys_path).values():
-                pkg_import_names.extend(names)
-        pkg_import_names.extend(builtins)
+            for names in self.__pkgs_importables_from(sys_path).values():
+                pkg_import_names.update(names)
+        pkg_import_names.update(builtins)
         return pkg_import_names
 
     def imports(self):
@@ -1001,7 +997,7 @@ class PyEnv:
         warn("此方法名即将弃用，请使用'query_for_import'代替。", stacklevel=2)
         return self.query_for_import(module_or_pkg_name, case)
 
-    def query_for_import(self, module_or_pkg_name: str, *, case=True):
+    def query_for_import(self, module_or_pkg_name: str, *, case=True, fresh=False):
         """
         ### 通过包名/模块的发布名称查询该包/模块用于import语句的名称。
 
@@ -1016,6 +1012,8 @@ class PyEnv:
 
         :param case: bool, 是否对module_or_pkg_name大小写敏感。
 
+        :param fresh: bool, 是否刷新缓存再查询。当你需要循环调用query_for_import方法查询大量module_or_pkg_name时，将此参数置为False可以使用缓存以加快查询。
+
         :return: list[str...], 该包、模块的用于import语句的名称列表。
         ```
 
@@ -1023,24 +1021,25 @@ class PyEnv:
         """
         if not isinstance(module_or_pkg_name, str):
             raise ParamTypeError("参数name数据类型错误，数据类型应为str。")
-        sys_paths, builtins = self.__read_syspath_builtins()
-        if not case:
-            builtins_cased = [n.lower() for n in builtins]
-            module_or_pkg_name = module_or_pkg_name.lower()
+        if fresh:
+            self.__cache_pkgs_importables.clear()
         else:
-            builtins_cased = builtins
-        if module_or_pkg_name in builtins_cased:
-            return [builtins[builtins_cased.index(module_or_pkg_name)]]
-        for sys_path in sys_paths:
+            if (
+                time.time() - self.__time_last_activity
+                > PyEnv.cache_refresh_maximum_interval
+            ):
+                self.__cache_pkgs_importables.clear()
+        self.__time_last_activity = time.time()
+        if not self.__cache_pkgs_importables:
+            self.get_map_packages_importables()
+        for publish_name, value in self.__cache_pkgs_importables.items():
             if case:
-                name_dict = self.packages_importables_from_syspath(sys_path)
+                cased_value = publish_name
             else:
-                name_dict = dict(
-                    (k.lower(), v)
-                    for k, v in self.packages_importables_from_syspath(sys_path).items()
-                )
-            if module_or_pkg_name in name_dict:
-                return list(name_dict[module_or_pkg_name])
+                cased_value = publish_name.lower()
+                module_or_pkg_name = module_or_pkg_name.lower()
+            if module_or_pkg_name == cased_value:
+                return list(value)
         return list()
 
     def __read_syspath_builtins(self):
@@ -1074,11 +1073,15 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return [], ()
 
     @staticmethod
-    def packages_importables_from_syspath(pkgs_host):
+    def __pkgs_importables_from(pkgs_host):
+        """
+        从(sys.path)中的一个路径(pkgs_host)生成模块/包发布名-import名映射表。
+
+        :return: dict[str: set[str...]...], 即：{模块发布名: {import名, ...}, ...}
+        """
         toplevel_pattern = re.compile(r"^[a-zA-Z_]?[0-9a-zA-Z_]+")
-        metadata_name_pattern = re.compile(r"^Name: ([A-Za-z0-9_]+)$")
+        metadata_name_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-]+)$")
         module_pattern = re.compile(r"^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$")
-        total_importable_names = set()
         publish_importable_names = dict()
         try:
             modules_packages_path = os.listdir(pkgs_host)
@@ -1100,38 +1103,42 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             dir_fullpath = os.path.join(pkgs_host, dist_dir)
             toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
             metadata = os.path.join(dir_fullpath, "METADATA")
-            if not (os.path.exists(toplevel_txt) and os.path.exists(metadata)):
+            if not os.path.exists(metadata):
                 continue
             try:
                 with open(metadata, "rt", encoding="utf-8") as md:
                     metadata_lines = md.readlines()
-                with open(toplevel_txt, "rt", encoding="utf-8") as tt:
-                    toplevel_txt_lines = tt.readlines()
             except Exception:
                 continue
             for line in metadata_lines[1:]:
                 name_metadata_matched = metadata_name_pattern.match(line)
                 if name_metadata_matched:
                     break
-            if name_metadata_matched:
-                pkg_published_name = name_metadata_matched.group(1)
+            if not name_metadata_matched:
+                continue
+            pkg_published_name = name_metadata_matched.group(1)
+            if not os.path.exists(toplevel_txt):
+                if pkg_published_name not in publish_importable_names:
+                    publish_importable_names[pkg_published_name] = set()
+                continue
             pkg_importables = set()
-            for line in toplevel_txt_lines:
-                toplevel_importable_matched = toplevel_pattern.match(
-                    os.path.basename(line).strip()
-                )
-                if not toplevel_importable_matched:
-                    continue
-                importable = toplevel_importable_matched.group()
-                pkg_importables.add(importable)
-                total_importable_names.add(importable)
+            try:
+                with open(toplevel_txt, "rt", encoding="utf-8") as tt:
+                    toplevel_txt_lines = tt.readlines()
+                for line in toplevel_txt_lines:
+                    toplevel_importable_matched = toplevel_pattern.match(
+                        os.path.basename(line).strip()
+                    )
+                    if not toplevel_importable_matched:
+                        continue
+                    pkg_importables.add(toplevel_importable_matched.group())
+            except Exception:
+                pass
             if pkg_published_name not in publish_importable_names:
                 publish_importable_names[pkg_published_name] = pkg_importables
             else:
                 publish_importable_names[pkg_published_name].update(pkg_importables)
         for nodist_dir in nodist_dirs:
-            if nodist_dir in total_importable_names:
-                continue
             if os.path.isfile(os.path.join(pkgs_host, nodist_dir, "__init__.py")):
                 if nodist_dir not in publish_importable_names:
                     publish_importable_names[nodist_dir] = {nodist_dir}
@@ -1251,3 +1258,67 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         if not self.env_path:
             return EMPTY_STR
         return os.path.join(self.env_path, PYTHON_SCR)
+
+    def get_map_packages_importables(self):
+        """
+        ### 获取本环境下包/模块的发布名与导入名的映射表并在PyEnv实例内缓存。
+
+        ```
+        :return: dict[str: set[str...]...]
+        ```
+        """
+        self.__cache_pkgs_importables.clear()
+        sys_paths, builtins = self.__read_syspath_builtins()
+        for name in builtins:
+            self.__cache_pkgs_importables[name] = {name}
+        for sys_path in sys_paths:
+            pkgs_importables_map = self.__pkgs_importables_from(sys_path)
+            for name, importables in pkgs_importables_map.items():
+                if name not in self.__cache_pkgs_importables:
+                    self.__cache_pkgs_importables[name] = importables
+                else:
+                    self.__cache_pkgs_importables[name].update(importables)
+        return self.__cache_pkgs_importables
+
+    def query_for_install(self, import_name, *, case=True, fresh=False):
+        """
+        ### 通过import语句所使用的模块名称反向查询该名称对应的包/模块的发布名称。
+
+        因为不是所有的包/模块的安装名称和用于导入的名称都是一样的，比如pywin32，使用时就是import win32api等。
+
+        此方法功能就像输入'win32api'或'win32con'作为import_name参数，反查得到'pywin32'。
+
+        此方法不保证查询的结果一定正确。
+
+        ```
+        :param import_name: str, import语句所使用的模块名称。
+
+        :param case: bool, 是否对import_name大小写敏感。
+
+        :param fresh: bool, 是否刷新缓存后查询。当你需要循环调用query_for_install方法查询大量import_name时，将此参数置为False可以使用缓存以加快查询。
+
+        :return: str, 包的名称，该名称一般用于安装，比如用于pip命令安装等。
+        ```
+        """
+        if not isinstance(import_name, str):
+            raise ParamTypeError("参数import_name类型错误，类型应为str。")
+        if fresh:
+            self.__cache_pkgs_importables.clear()
+        else:
+            if (
+                time.time() - self.__time_last_activity
+                > PyEnv.cache_refresh_maximum_interval
+            ):
+                self.__cache_pkgs_importables.clear()
+        self.__time_last_activity = time.time()
+        if not self.__cache_pkgs_importables:
+            self.get_map_packages_importables()
+        for publish_name, value in self.__cache_pkgs_importables.items():
+            if case:
+                cased_value = value
+            else:
+                import_name = import_name.lower()
+                cased_value = {i.lower() for i in value}
+            if import_name in cased_value:
+                return publish_name
+        return EMPTY_STR
