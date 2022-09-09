@@ -1082,9 +1082,9 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
 
         :return: dict[str: set[str...]...], 即：{模块发布名: {import名, ...}, ...}
         """
-        toplevel_pattern = re.compile(r"^[a-zA-Z_]?[0-9a-zA-Z_]+")
+        toplevel_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
         metadata_name_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-]+)$")
-        module_pattern = re.compile(r"^([0-9a-zA-Z_]+).*(?<!_d)\.py[cdw]?$")
+        module_pattern = re.compile(r"^([A-Za-z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
         publish_importable_names = dict()
         try:
             modules_packages_path = os.listdir(pkgs_host)
