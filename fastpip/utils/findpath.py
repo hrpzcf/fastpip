@@ -8,6 +8,14 @@ from psutil import disk_partitions
 from ..common.common import *
 
 
+class GetFd:
+    """__list_fd 函数的 opt 参数所使用的枚举类型"""
+
+    Dirs = 0
+    Files = 1
+    Both = 2
+
+
 def __common_location():
     """生成各磁盘上的常见的Python安装目录路径列表。"""
     most_possible_path = list()
@@ -48,7 +56,7 @@ def __paths_in_PATH():
     ### 查找系统环境变量PATH中的Python目录路径列表。
     仅根据"目录中是否存在python.exe文件"进行简单查找。
     """
-    python_paths_found = list()
+    python_paths_in_PATH = list()
     PATH_paths = os.getenv("PATH", "").split(";")
     for PATH_path in PATH_paths:
         try:
@@ -59,10 +67,10 @@ def __paths_in_PATH():
         if (
             PYTHON_EXE in PATH_path_files
             and __fsize(PATH_path, PYTHON_EXE)
-            and PATH_path not in python_paths_found
+            and PATH_path not in python_paths_in_PATH
         ):
-            python_paths_found.append(PATH_path)
-    return python_paths_found
+            python_paths_in_PATH.append(PATH_path)
+    return python_paths_in_PATH
 
 
 def cur_py_path():
@@ -76,17 +84,19 @@ def cur_py_path():
     return PATH_paths[0]
 
 
-def __list_fd(_path, t="b"):
+def __list_fd(_path, opt=GetFd.Both):
     """列出给定目录下的文件或文件夹，返回文件或文件夹列表。"""
     results = list()
     if os.path.isfile(_path):
         return results
-    if t == "f":
+    if opt == GetFd.Files:
         condi = os.path.isfile
-    elif t == "d":
+    elif opt == GetFd.Dirs:
         condi = os.path.isdir
+    elif opt == GetFd.Both:
+        condi = lambda p: os.path.isfile(p) or os.path.isdir(p)
     else:
-        condi = os.path.exists
+        return results
     try:
         files_dirs = os.listdir(_path)
     except Exception:
@@ -104,16 +114,16 @@ def __path_list(fd_name):
     """
     fd_name = os.path.normpath(fd_name)
     python_env_paths = list()
-    files = __list_fd(fd_name, "f")
+    files = __list_fd(fd_name, GetFd.Files)
     if PYTHON_EXE in files and __fsize(fd_name, PYTHON_EXE):
         python_env_paths.append(fd_name)
     if P_CONDA_EXE in files and __fsize(fd_name, P_CONDA_EXE):
         env_d = os.path.join(fd_name, CONDA_ENVS)
         if not os.path.isdir(env_d):
             return python_env_paths
-        for env_p in __list_fd(env_d, "d"):
+        for env_p in __list_fd(env_d, GetFd.Dirs):
             env_p = os.path.join(env_d, env_p)
-            if PYTHON_EXE in __list_fd(env_p, "f"):
+            if PYTHON_EXE in __list_fd(env_p, GetFd.Files):
                 python_env_paths.append(env_p)
     return python_env_paths
 
@@ -125,13 +135,13 @@ def all_py_paths():
     """
     paths_interpreter_exists = __paths_in_PATH()
     for common in __common_location():
-        for level1 in __list_fd(common, "d"):
+        for level1 in __list_fd(common, GetFd.Dirs):
             l1f = os.path.join(common, level1)
             for _path in __path_list(l1f):
                 if _path in paths_interpreter_exists:
                     continue
                 paths_interpreter_exists.append(_path)
-            for level2 in __list_fd(l1f, "d"):
+            for level2 in __list_fd(l1f, GetFd.Dirs):
                 for _path in __path_list(os.path.join(l1f, level2)):
                     if _path in paths_interpreter_exists:
                         continue
