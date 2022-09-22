@@ -9,42 +9,63 @@ from ..common.common import *
 
 
 class GetFd:
-    """__list_fd 函数的 opt 参数所使用的枚举类型"""
+    """__list_fd 函数的 opt 参数所使用的枚举"""
 
     Dirs = 0
     Files = 1
     Both = 2
 
 
+class Level:
+    """
+    __common_location 函数之：
+
+    局部参数 common_location_classification 的键
+
+    函数返回值 common_location_classification 的键
+    """
+
+    level_1 = "level_1"
+    level_2 = "level_2"
+
+
 def __common_location():
     """生成各磁盘上的常见的Python安装目录路径列表。"""
-    most_possible_path = list()
-    cur_pyver = "Python" + winver.replace(".", "")  # 查询当前Python版本
+    com_location_classification = {
+        # 只需获取其直接子目录的目录
+        Level.level_1: list(),
+        # 需要获取其两层深度子目录的目录
+        Level.level_2: list(),
+    }
+    # 查询当前Python版本（对于打包后的程序，获取此值似乎意义不大？）
+    cur_pyver = "Python" + winver.replace(".", "")
     # 常用目录添加envs目录名称
     lst_common_dir = [
-        "Program Files",
-        "Program Files (x86)",
-        "ProgramData",
+        "Program Files",  # Python "All Users"
+        "Program Files (x86)",  # Python "All Users"
+        "ProgramData",  # Anaconda3 "All Users"
         cur_pyver,
         os.path.join(cur_pyver, "envs"),
     ]
-    most_possible_path.append(os.path.expanduser("~"))
+    # Anaconda3 "Just Me"
+    com_location_classification[Level.level_1].append(os.path.expanduser("~"))
     disk_parts = [dp.device for dp in disk_partitions()]
-    most_possible_path.extend(disk_parts)
+    com_location_classification[Level.level_1].extend(disk_parts)
     for dp in disk_parts:
         for cd in lst_common_dir:
             full_path = os.path.join(dp, cd)
             if not os.path.isdir(full_path):
                 continue
-            most_possible_path.append(full_path)
-    appd = os.path.join(os.getenv("LOCALAPPDATA"), "Programs")
-    if os.path.exists(appd):
-        most_possible_path.append(appd)
-    return most_possible_path
+            com_location_classification[Level.level_1].append(full_path)
+    # Python "Just Me"
+    user_programs_dir = os.path.join(os.getenv("LOCALAPPDATA"), "Programs")
+    if os.path.exists(user_programs_dir):
+        com_location_classification[Level.level_2].append(user_programs_dir)
+    return com_location_classification
 
 
 def __fsize(*_fpath):
-    """返回文件路径中文件的大小。"""
+    """验证文件路径中的文件是否有大小"""
     try:
         return os.path.getsize(os.path.join(*_fpath))
     except Exception:
@@ -107,18 +128,18 @@ def __list_fd(_path, opt=GetFd.Both):
     return results
 
 
-def __path_list(fd_name):
+def __valid_path_list(dir):
     """
     ### 判断指定路径是否为Python或Anaconda3目录。
     将确认为Python目录的路径或Anaconda3内Python目录路径添加到列表并返回。
     """
-    fd_name = os.path.normpath(fd_name)
+    dir = os.path.normpath(dir)
     python_env_paths = list()
-    files = __list_fd(fd_name, GetFd.Files)
-    if PYTHON_EXE in files and __fsize(fd_name, PYTHON_EXE):
-        python_env_paths.append(fd_name)
-    if P_CONDA_EXE in files and __fsize(fd_name, P_CONDA_EXE):
-        env_d = os.path.join(fd_name, CONDA_ENVS)
+    files = __list_fd(dir, GetFd.Files)
+    if PYTHON_EXE in files and __fsize(dir, PYTHON_EXE):
+        python_env_paths.append(dir)
+    if P_CONDA_EXE in files and __fsize(dir, P_CONDA_EXE):
+        env_d = os.path.join(dir, CONDA_ENVS)
         if not os.path.isdir(env_d):
             return python_env_paths
         for env_p in __list_fd(env_d, GetFd.Dirs):
@@ -130,20 +151,27 @@ def __path_list(fd_name):
 
 def all_py_paths():
     """
-    ### 返回存在Python解释器的目录路径列表。
-    只在常用安装位置深入搜索两层目录，不会过于深入。
+    ### 返回存在 Python 解释器的目录路径列表
+
+    只在常用安装位置的直接子目录内搜索 Python 可执行文件
+
+    例外：对于 AppData\Local\Programs 目录，此函数在其直接子目录的子目录内搜索
     """
-    paths_interpreter_exists = __paths_in_PATH()
-    for common in __common_location():
-        for level1 in __list_fd(common, GetFd.Dirs):
-            l1f = os.path.join(common, level1)
-            for _path in __path_list(l1f):
-                if _path in paths_interpreter_exists:
+    common_locations = __common_location()
+    dirs_interpreter_in = __paths_in_PATH()
+    for level_1_common in common_locations[Level.level_1]:
+        for dir in __list_fd(level_1_common, GetFd.Dirs):
+            level_1_full = os.path.join(level_1_common, dir)
+            for path in __valid_path_list(level_1_full):
+                if path in dirs_interpreter_in:
                     continue
-                paths_interpreter_exists.append(_path)
-            for level2 in __list_fd(l1f, GetFd.Dirs):
-                for _path in __path_list(os.path.join(l1f, level2)):
-                    if _path in paths_interpreter_exists:
+                dirs_interpreter_in.append(path)
+    for level_2_common in common_locations[Level.level_2]:
+        for sub_dir in __list_fd(level_2_common, GetFd.Dirs):
+            sub_dir_full = os.path.join(level_2_common, sub_dir)
+            for sub_dir_sub in __list_fd(sub_dir_full, GetFd.Dirs):
+                for _path in __valid_path_list(os.path.join(sub_dir_full, sub_dir_sub)):
+                    if _path in dirs_interpreter_in:
                         continue
-                    paths_interpreter_exists.append(_path)
-    return paths_interpreter_exists
+                    dirs_interpreter_in.append(_path)
+    return dirs_interpreter_in
