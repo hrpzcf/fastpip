@@ -32,6 +32,7 @@ import shutil
 import time
 from subprocess import PIPE, STARTF_USESHOWWINDOW, STARTUPINFO, STDOUT, SW_HIDE, Popen
 from threading import Thread
+from typing import Callable
 
 from ..__version__ import VERSION
 from ..common.common import *  # 一些常用量
@@ -178,6 +179,7 @@ class PyEnv:
     只有一个例外：使用set_global_index方法设置本机pip全局镜像源地址，对所有环境产生作用。
     """
 
+    __OUTPUT_CALLBACK = None
     _HOME = os.path.join(
         os.getenv("HOMEDRIVE", EMPTY_STR), os.getenv("HOMEPATH", EMPTY_STR)
     )
@@ -235,6 +237,29 @@ class PyEnv:
             raise PathParamError("路径参数类型错误。")
         self.__designated_path = os.path.normpath(_path)
 
+    def __check(self, _path):
+        """### 检查参数path在当前是否是一个有效的Python目录路径。"""
+        _path = os.path.abspath(_path)
+        # 传入的目录内没有python.exe可执行文件则进入此分支
+        if not os.path.isfile(os.path.join(_path, PYTHON_EXE)):
+            # 检查是否是venv虚拟环境的Scripts的上级目录
+            if os.path.isfile(os.path.join(_path, VENV_CFG)) and os.path.isfile(
+                os.path.join(_path, PYTHON_SCR, PYTHON_EXE)
+            ):
+                self.__pyexe_in_scripts = True
+                return os.path.normpath(_path)  # 如是则规范化路径后返回
+            return EMPTY_STR  # 如非则路径是无效的，返回空字符串
+        # 传入的目录路径内有python.exe则进入此分支
+        parent, scripts = os.path.split(_path)
+        if parent and scripts:
+            # 先判断是否是venv虚拟环境的Scripts目录
+            if scripts.lower() == PYTHON_SCR.lower() and os.path.isfile(
+                os.path.join(parent, VENV_CFG)
+            ):
+                self.__pyexe_in_scripts = True
+                return os.path.normpath(parent)  # 如是则返回Scripts上级
+        return os.path.normpath(_path)  # 如非则可断定非特殊Python环境（？）
+
     @property
     def env_path(self):
         """
@@ -273,29 +298,6 @@ class PyEnv:
         if not env_path:
             return False
         return os.path.isfile(os.path.join(env_path, PIP_INIT))
-
-    def __check(self, _path):
-        """### 检查参数path在当前是否是一个有效的Python目录路径。"""
-        _path = os.path.abspath(_path)
-        # 传入的目录内没有python.exe可执行文件则进入此分支
-        if not os.path.isfile(os.path.join(_path, PYTHON_EXE)):
-            # 检查是否是venv虚拟环境的Scripts的上级目录
-            if os.path.isfile(os.path.join(_path, VENV_CFG)) and os.path.isfile(
-                os.path.join(_path, PYTHON_SCR, PYTHON_EXE)
-            ):
-                self.__pyexe_in_scripts = True
-                return os.path.normpath(_path)  # 如是则规范化路径后返回
-            return EMPTY_STR  # 如非则路径是无效的，返回空字符串
-        # 传入的目录路径内有python.exe则进入此分支
-        parent, scripts = os.path.split(_path)
-        if parent and scripts:
-            # 先判断是否是venv虚拟环境的Scripts目录
-            if scripts.lower() == PYTHON_SCR.lower() and os.path.isfile(
-                os.path.join(parent, VENV_CFG)
-            ):
-                self.__pyexe_in_scripts = True
-                return os.path.normpath(parent)  # 如是则返回Scripts上级
-        return os.path.normpath(_path)  # 如非则可断定非特殊Python环境（？）
 
     @staticmethod
     def __check_timeout_num(timeout):
