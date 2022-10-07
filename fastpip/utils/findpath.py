@@ -5,7 +5,7 @@ from sys import winver
 
 from psutil import disk_partitions
 
-from ..common.common import *
+from ..com.common import *
 
 
 class GetFd:
@@ -30,16 +30,16 @@ class Level:
 
 
 def __common_location():
-    """生成各磁盘上的常见的Python安装目录路径列表。"""
+    """生成各磁盘上的常见的 Python 安装目录路径列表。"""
     com_location_classification = {
         # 只需获取其直接子目录的目录
         Level.level_1: list(),
         # 需要获取其两层深度子目录的目录
         Level.level_2: list(),
     }
-    # 查询当前Python版本（对于打包后的程序，获取此值似乎意义不大？）
+    # 查询当前 Python 版本（对于打包后的程序，获取此值似乎意义不大？）
     cur_pyver = "Python" + winver.replace(".", "")
-    # 常用目录添加envs目录名称
+    # 常用目录添加 envs 目录名称
     lst_common_dir = [
         "Program Files",  # Python "All Users"
         "Program Files (x86)",  # Python "All Users"
@@ -74,8 +74,8 @@ def __fsize(*_fpath):
 
 def __paths_in_PATH():
     """
-    ### 查找系统环境变量PATH中的Python目录路径列表。
-    仅根据"目录中是否存在python.exe文件"进行简单查找。
+    ### 查找系统环境变量 PATH 中的 Python 目录路径列表。
+        仅根据"目录中是否存在 python.exe 文件"进行简单查找。
     """
     python_paths_in_PATH = list()
     PATH_paths = os.getenv("PATH", "").split(";")
@@ -96,8 +96,8 @@ def __paths_in_PATH():
 
 def cur_py_path():
     """
-    ### 返回系统环境变量PATH中第一个Python目录路径。
-    如果环境变量PATH中没有Python目录路径则返回空字符串。
+    ### 返回系统环境变量 PATH 中第一个 Python 目录路径。
+    如果环境变量 PATH 中没有 Python 目录路径则返回空字符串。
     """
     PATH_paths = __paths_in_PATH()
     if not PATH_paths:
@@ -130,8 +130,8 @@ def __list_fd(_path, opt=GetFd.Both):
 
 def __valid_path_list(dir):
     """
-    ### 判断指定路径是否为Python或Anaconda3目录。
-    将确认为Python目录的路径或Anaconda3内Python目录路径添加到列表并返回。
+    ### 判断指定路径是否为 Python 或 Anaconda3 目录。
+    将确认为 Python 目录的路径或 Anaconda3 内 Python 目录路径添加到列表并返回。
     """
     dir = os.path.normpath(dir)
     python_env_paths = list()

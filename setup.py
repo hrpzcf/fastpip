@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 from fastpip import AUTHOR, EMAIL, NAME, VERSION, WEBSITE
 
-description = "一个pip命令包，可在Python3.7+源代码中实现方便的包管理操作。"
+description = "一个 pip 命令包，可实现用 Python 代码进行方便的包管理操作。"
 try:
     with open("README.md", "r", encoding="utf-8") as mdfile:
         long_description = mdfile.read()

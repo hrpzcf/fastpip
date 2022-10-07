@@ -2,15 +2,14 @@
 
 import os
 
-from ..common.common import *
-from ..errors.errors import *
+from ..com.common import *
 
 
 class Command(list):
-    """经包装的命令类，主要是为了提供与Anaconda3路径相关的环境变量。"""
+    """经包装的命令类，主要是为了提供与 Anaconda3 路径相关的环境变量。"""
 
     def __init__(self, *args, **kwargs):
-        """第一个参数要求是一个可执行文件的绝对路径。"""
+        """第一个参数要求是一个可执行文件的绝对路径"""
         if not args:
             raise ValueError("参数数量不能少于一个。")
         super().__init__()
@@ -20,11 +19,11 @@ class Command(list):
     @staticmethod
     def initialize(args):
         if not all(isinstance(s, str) for s in args):
-            raise ParamTypeError("参数数据类型应为字符串。")
+            raise TypeError("参数数据类型应为字符串。")
         if not os.path.isabs(args[0]):
-            raise PathParamError("第一个参数不是一个绝对路径。")
+            raise ValueError("第一个参数不是一个绝对路径。")
         if not os.path.isfile(args[0]):
-            raise PathParamError("第一个参数不是文件路径。")
+            raise ValueError("第一个参数不是文件路径。")
         return args
 
     @property
@@ -69,7 +68,7 @@ class Command(list):
             return _path
         if self.issubconda():
             return os.path.dirname(os.path.dirname(_path))
-        return ""
+        return EMPTY_STR
 
     def environment(self):
         if self.isconda():
