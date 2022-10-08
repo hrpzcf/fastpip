@@ -132,13 +132,13 @@ def _execute_cmd(cmds, output, timeout):
             try:
                 line = process.stdout.readline()
             except UnicodeDecodeError as e:
-                line = e.reason
+                line = f"[fastpip] {e.reason}\n"
             if line:
                 strings.append(line)
                 if output:
                     print(line, end="")
                 for callback in PyEnv._OUTPUT_CALLBACK_DICT.values():
-                    callback(line.strip())
+                    callback(line.rstrip("\n"))
         out_strings = "".join(strings)
         return_code = process.returncode
     return out_strings, return_code
@@ -193,7 +193,8 @@ class PyEnv:
         # 解释器是否在 Scripts 目录的标识
         self.__pyexe_in_scripts = False
         self.__designated_path = self.__init_path(path)
-        self.__cache_pkgs_importables = dict()
+        self.__cached_python_info = EMPTY_STR
+        self.__cached_pkgs_importables = dict()
 
     @staticmethod
     def __init_path(_path):
@@ -243,6 +244,13 @@ class PyEnv:
         else:
             return False
 
+    @classmethod
+    def clear_registered(cls):
+        """
+        ### 清空所有已注册到 PyEnv 类的回调函数
+        """
+        cls._OUTPUT_CALLBACK_DICT.clear()
+
     @property
     def path(self):
         """
@@ -259,6 +267,7 @@ class PyEnv:
         if not isinstance(_path, str):
             raise TypeError("路径参数类型错误。")
         self.__designated_path = os.path.normpath(_path)
+        self.__cached_python_info = EMPTY_STR
 
     def __check(self, _path):
         """### 检查参数 path 在当前是否是一个有效的 Python 目录路径。"""
@@ -354,9 +363,11 @@ class PyEnv:
     def py_info(self):
         """### 获取当前环境 Python 版本信息。"""
         self.cleanup_old_scripts()
-        info = "Python {} :: {} bit"
+        if self.__cached_python_info:
+            return self.__cached_python_info
+        py_info = "Python {} :: {} bit"
         if not self.env_path:
-            return info.format("0.0.0", "?")
+            return py_info.format("0.0.0", "?")
         source_code = "import sys;print(sys.version)"
         _path = os.path.join(self.FILE_DIR, f"ReadPyVER.{VERSION}")
         if not os.path.isfile(_path):
@@ -364,22 +375,23 @@ class PyEnv:
                 try:
                     os.makedirs(self.FILE_DIR)
                 except Exception:
-                    return info.format("0.0.0", "?")
+                    return py_info.format("0.0.0", "?")
             try:
                 with open(_path, "wt", encoding="utf-8") as py_file:
                     py_file.write(source_code)
             except Exception:
-                return info.format("0.0.0", "?")
+                return py_info.format("0.0.0", "?")
         result, retcode = _execute_cmd(Command(self.interpreter, _path), False, None)
         if retcode or not result:
-            return info.format("0.0.0", "?")
-        # 3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]
+            return py_info.format("0.0.0", "?")
+        # e.g., '3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]' etc.
         m_obj = re.match(
             r"(\d+\.\d+\.\d+)\+? (?:\(|\|).+(32|64) bit \(.+\)", result, re.S
         )
         if not m_obj:
-            return info.format("0.0.0", "?")
-        return info.format(*m_obj.groups())
+            return py_info.format("0.0.0", "?")
+        self.__cached_python_info = py_info.format(*m_obj.groups())
+        return self.__cached_python_info
 
     def pip_path(self):
         """
@@ -938,17 +950,17 @@ class PyEnv:
         if not isinstance(module_or_pkg_name, str):
             raise TypeError("参数 name 数据类型错误，数据类型应为 'str'。")
         if fresh:
-            self.__cache_pkgs_importables.clear()
+            self.__cached_pkgs_importables.clear()
         else:
             if (
                 time.time() - self.__time_last_activity
                 > PyEnv._cache_refresh_maximum_interval
             ):
-                self.__cache_pkgs_importables.clear()
+                self.__cached_pkgs_importables.clear()
         self.__time_last_activity = time.time()
-        if not self.__cache_pkgs_importables:
+        if not self.__cached_pkgs_importables:
             self.get_map_packages_importables()
-        for publish_name, value in self.__cache_pkgs_importables.items():
+        for publish_name, value in self.__cached_pkgs_importables.items():
             if case:
                 cased_value = publish_name
             else:
@@ -1113,18 +1125,18 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         :return: dict[str: set[str...]...]
         ```
         """
-        self.__cache_pkgs_importables.clear()
+        self.__cached_pkgs_importables.clear()
         sys_paths, builtins = self.__read_syspath_builtins()
         for name in builtins:
-            self.__cache_pkgs_importables[name] = {name}
+            self.__cached_pkgs_importables[name] = {name}
         for sys_path in sys_paths:
             pkgs_importables_map = self.__pkgs_importables_from(sys_path)
             for name, importables in pkgs_importables_map.items():
-                if name not in self.__cache_pkgs_importables:
-                    self.__cache_pkgs_importables[name] = importables
+                if name not in self.__cached_pkgs_importables:
+                    self.__cached_pkgs_importables[name] = importables
                 else:
-                    self.__cache_pkgs_importables[name].update(importables)
-        return self.__cache_pkgs_importables
+                    self.__cached_pkgs_importables[name].update(importables)
+        return self.__cached_pkgs_importables
 
     def query_for_install(self, import_name, *, case=True, fresh=False):
         """
@@ -1149,17 +1161,17 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         if not isinstance(import_name, str):
             raise TypeError("参数 import_name 类型错误，类型应为 'str'。")
         if fresh:
-            self.__cache_pkgs_importables.clear()
+            self.__cached_pkgs_importables.clear()
         else:
             if (
                 time.time() - self.__time_last_activity
                 > PyEnv._cache_refresh_maximum_interval
             ):
-                self.__cache_pkgs_importables.clear()
+                self.__cached_pkgs_importables.clear()
         self.__time_last_activity = time.time()
-        if not self.__cache_pkgs_importables:
+        if not self.__cached_pkgs_importables:
             self.get_map_packages_importables()
-        for publish_name, value in self.__cache_pkgs_importables.items():
+        for publish_name, value in self.__cached_pkgs_importables.items():
             if case:
                 cased_value = value
             else:
