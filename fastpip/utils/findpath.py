@@ -128,18 +128,18 @@ def __list_fd(_path, opt=GetFd.Both):
     return results
 
 
-def __valid_path_list(dir):
+def __valid_path_list(dir_path):
     """
     ### 判断指定路径是否为 Python 或 Anaconda3 目录。
     将确认为 Python 目录的路径或 Anaconda3 内 Python 目录路径添加到列表并返回。
     """
-    dir = os.path.normpath(dir)
+    dir_path = os.path.normpath(dir_path)
     python_env_paths = list()
-    files = __list_fd(dir, GetFd.Files)
-    if PYTHON_EXE in files and __fsize(dir, PYTHON_EXE):
-        python_env_paths.append(dir)
-    if P_CONDA_EXE in files and __fsize(dir, P_CONDA_EXE):
-        env_d = os.path.join(dir, CONDA_ENVS)
+    files = __list_fd(dir_path, GetFd.Files)
+    if PYTHON_EXE in files and __fsize(dir_path, PYTHON_EXE):
+        python_env_paths.append(dir_path)
+    if P_CONDA_EXE in files and __fsize(dir_path, P_CONDA_EXE):
+        env_d = os.path.join(dir_path, CONDA_ENVS)
         if not os.path.isdir(env_d):
             return python_env_paths
         for env_p in __list_fd(env_d, GetFd.Dirs):
@@ -160,8 +160,8 @@ def all_py_paths():
     common_locations = __common_location()
     dirs_interpreter_in = __paths_in_PATH()
     for level_1_common in common_locations[Level.level_1]:
-        for dir in __list_fd(level_1_common, GetFd.Dirs):
-            level_1_full = os.path.join(level_1_common, dir)
+        for dir_name in __list_fd(level_1_common, GetFd.Dirs):
+            level_1_full = os.path.join(level_1_common, dir_name)
             for path in __valid_path_list(level_1_full):
                 if path in dirs_interpreter_in:
                     continue

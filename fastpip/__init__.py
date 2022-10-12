@@ -1,6 +1,6 @@
 # coding: utf-8
 
-license = """ MIT License
+LICENSE = """ MIT License
 
 Copyright (c) 2020-2021 hrp/hrpzcf <hrpzcf@foxmail.com>
 
@@ -23,17 +23,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
 
 __all__ = [
-    "all_py_paths",
+    "AUTHOR",
     "Command",
+    "EMAIL",
+    "LICENSE",
+    "NAME",
+    "PipInformation",
+    "PyEnv",
+    "VERNUM",
+    "VERSION",
+    "VERSION",
+    "WEBSITE",
+    "all_py_paths",
     "cur_py_path",
     "execute_commands",
     "index_urls",
-    "license",
-    "PipInformation",
-    "PyEnv",
     "parse_package_names",
-    "VERNUM",
-    "VERSION",
 ]
 
 from .__version__ import *

@@ -121,7 +121,7 @@ def execute_commands(
         cwd=cwd,
         env=env,
     )
-    if not output and not PyEnv._OUTPUT_CALLBACK_DICT:
+    if not output and not PyEnv.OUTPUT_CALLBACK_DICT:
         try:
             out_strings, _ = process.communicate(None, timeout)
             return_code = process.returncode
@@ -139,7 +139,7 @@ def execute_commands(
                 strings.append(line)
                 if output:
                     print(line, end="")
-                for callback in PyEnv._OUTPUT_CALLBACK_DICT.values():
+                for callback in PyEnv.OUTPUT_CALLBACK_DICT.values():
                     callback(line.rstrip("\n"))
         out_strings = "".join(strings)
         return_code = process.returncode
@@ -171,7 +171,7 @@ class PyEnv:
     只有一个例外：使用 set_global_index 方法设置本机 pip 全局镜像源地址，产生全局作用。
     """
 
-    _OUTPUT_CALLBACK_DICT = OrderedDict()
+    OUTPUT_CALLBACK_DICT = OrderedDict()
     _cache_refresh_maximum_interval = 3
     _HOME = os.path.join(
         os.getenv("HOMEDRIVE", EMPTY_STR), os.getenv("HOMEPATH", EMPTY_STR)
@@ -225,9 +225,9 @@ class PyEnv:
             return None
         while True:
             handle = str(randint(0x10000000, 0xFFFFFFFF))
-            if handle not in cls._OUTPUT_CALLBACK_DICT:
+            if handle not in cls.OUTPUT_CALLBACK_DICT:
                 break
-        cls._OUTPUT_CALLBACK_DICT[handle] = output_callback
+        cls.OUTPUT_CALLBACK_DICT[handle] = output_callback
         return handle
 
     @classmethod
@@ -240,8 +240,8 @@ class PyEnv:
         :return: bool, 反注册成功返回 True，失败返回 False。
         ```
         """
-        if handle in cls._OUTPUT_CALLBACK_DICT:
-            del cls._OUTPUT_CALLBACK_DICT[handle]
+        if handle in cls.OUTPUT_CALLBACK_DICT:
+            del cls.OUTPUT_CALLBACK_DICT[handle]
             return True
         else:
             return False
@@ -251,7 +251,7 @@ class PyEnv:
         """
         ### 清空所有已注册到 PyEnv 类的回调函数
         """
-        cls._OUTPUT_CALLBACK_DICT.clear()
+        cls.OUTPUT_CALLBACK_DICT.clear()
 
     @property
     def path(self):
@@ -586,7 +586,7 @@ class PyEnv:
         if index_url:
             cmds.extend(("-i", index_url))
         retcode = execute_commands(cmds, output, timeout)[1]
-        return (("pip",), not retcode)
+        return ("pip",), not retcode
 
     def set_global_index(self, index_url=index_urls["tencent"]):
         """
@@ -712,7 +712,7 @@ class PyEnv:
             cmds.append("--compile")
         else:
             cmds.append("--no-compile")
-        return (names, not execute_commands(cmds, output, timeout)[1])
+        return names, not execute_commands(cmds, output, timeout)[1]
 
     def uninstall(self, *names, **kwargs):
         """
@@ -743,7 +743,7 @@ class PyEnv:
             raise TypeError("包名参数的数据类型应为字符串。")
         self.__check_timeout_num(timeout)
         cmds = Command(self.interpreter, *_PIPCMDS["UNINSTALL"], *names)
-        return (names, not execute_commands(cmds, output, timeout)[1])
+        return names, not execute_commands(cmds, output, timeout)[1]
 
     def download(self, *names, **kwargs):
         """
@@ -1042,6 +1042,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     metadata_lines = md.readlines()
             except Exception:
                 continue
+            name_metadata_matched = None
             for line in metadata_lines[1:]:
                 name_metadata_matched = metadata_name_pattern.match(line)
                 if name_metadata_matched:
