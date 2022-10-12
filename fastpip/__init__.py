@@ -24,6 +24,7 @@ SOFTWARE."""
 
 __all__ = [
     "all_py_paths",
+    "Command",
     "cur_py_path",
     "execute_commands",
     "index_urls",
@@ -43,4 +44,5 @@ from .core.fastpip import (
     index_urls,
     parse_package_names,
 )
+from .utils.cmdutil import Command
 from .utils.findpath import all_py_paths, cur_py_path
