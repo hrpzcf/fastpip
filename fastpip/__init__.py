@@ -25,14 +25,22 @@ SOFTWARE."""
 __all__ = [
     "all_py_paths",
     "cur_py_path",
+    "execute_commands",
     "index_urls",
     "license",
     "PipInformation",
     "PyEnv",
     "parse_package_names",
+    "VERNUM",
     "VERSION",
 ]
 
 from .__version__ import *
-from .core.fastpip import PipInformation, PyEnv, index_urls, parse_package_names
+from .core.fastpip import (
+    PipInformation,
+    PyEnv,
+    execute_commands,
+    index_urls,
+    parse_package_names,
+)
 from .utils.findpath import all_py_paths, cur_py_path

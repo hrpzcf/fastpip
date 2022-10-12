@@ -32,8 +32,8 @@ import shutil
 import time
 from collections import OrderedDict
 from random import randint
-from subprocess import PIPE, STARTF_USESHOWWINDOW, STARTUPINFO, STDOUT, SW_HIDE, Popen
-from typing import Callable
+from subprocess import *
+from typing import Callable, Tuple, Union
 
 from ..__version__ import VERSION
 from ..com.common import *  # 一些常用量
@@ -106,8 +106,10 @@ class PipInformation:
         return self.__pipver
 
 
-def _execute_cmd(cmds, output, timeout):
-    """### 执行命令，打印命令输出。"""
+def execute_commands(
+    cmds: Command, output: bool, timeout: Union[int, float, None]
+) -> Tuple[str, int]:
+    """### 执行命令，打印命令输出，返回输出字符串和结束状态码。"""
     env = cmds.environment()
     cwd = os.path.dirname(cmds.executable)
     process = Popen(
@@ -381,7 +383,9 @@ class PyEnv:
                     py_file.write(source_code)
             except Exception:
                 return py_info.format("0.0.0", "?")
-        result, retcode = _execute_cmd(Command(self.interpreter, _path), False, None)
+        result, retcode = execute_commands(
+            Command(self.interpreter, _path), False, None
+        )
         if retcode or not result:
             return py_info.format("0.0.0", "?")
         # e.g., '3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]' etc.
@@ -438,7 +442,7 @@ class PyEnv:
         """
         if not self.pip_ready:
             return
-        result, retcode = _execute_cmd(
+        result, retcode = execute_commands(
             Command(self.interpreter, *_PIPCMDS["INFO"]), False, None
         )
         if retcode or not result:
@@ -482,7 +486,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        result, retcode = _execute_cmd(
+        result, retcode = execute_commands(
             Command(self.interpreter, *_PIPCMDS["LIST"]), output, timeout
         )
         if retcode or not result:
@@ -508,7 +512,7 @@ class PyEnv:
         if not self.pip_ready:
             return []
         self.__check_timeout_num(timeout)
-        result, retcode = _execute_cmd(
+        result, retcode = execute_commands(
             Command(self.interpreter, *_PIPCMDS["LIST"]), output, timeout
         )
         if retcode or not result:
@@ -538,7 +542,7 @@ class PyEnv:
             return []
         self.__check_timeout_num(timeout)
         outdated_pkgs_info = []
-        result, retcode = _execute_cmd(
+        result, retcode = execute_commands(
             Command(self.interpreter, *_PIPCMDS["OUTDATED"]), output, timeout
         )
         if retcode or not result:
@@ -581,7 +585,7 @@ class PyEnv:
         cmds = Command(self.interpreter, *_PIPCMDS["PIPUP"])
         if index_url:
             cmds.extend(("-i", index_url))
-        retcode = _execute_cmd(cmds, output, timeout)[1]
+        retcode = execute_commands(cmds, output, timeout)[1]
         return (("pip",), not retcode)
 
     def set_global_index(self, index_url=index_urls["tencent"]):
@@ -599,7 +603,7 @@ class PyEnv:
             return False
         if not isinstance(index_url, str):
             raise TypeError("镜像源地址参数的数据类型应为字符串。")
-        return not _execute_cmd(
+        return not execute_commands(
             Command(self.interpreter, *_PIPCMDS["SETINDEX"], index_url), False, None
         )[1]
 
@@ -613,7 +617,7 @@ class PyEnv:
         """
         if not self.pip_ready:
             return EMPTY_STR
-        result, retcode = _execute_cmd(
+        result, retcode = execute_commands(
             Command(self.interpreter, *_PIPCMDS["GETINDEX"]), False, None
         )
         if retcode:
@@ -708,7 +712,7 @@ class PyEnv:
             cmds.append("--compile")
         else:
             cmds.append("--no-compile")
-        return (names, not _execute_cmd(cmds, output, timeout)[1])
+        return (names, not execute_commands(cmds, output, timeout)[1])
 
     def uninstall(self, *names, **kwargs):
         """
@@ -739,7 +743,7 @@ class PyEnv:
             raise TypeError("包名参数的数据类型应为字符串。")
         self.__check_timeout_num(timeout)
         cmds = Command(self.interpreter, *_PIPCMDS["UNINSTALL"], *names)
-        return (names, not _execute_cmd(cmds, output, timeout)[1])
+        return (names, not execute_commands(cmds, output, timeout)[1])
 
     def download(self, *names, **kwargs):
         """
@@ -902,7 +906,7 @@ class PyEnv:
                 cmds.extend(("--abi", abi))
         if index_url:
             cmds.extend(("--index-url", index_url))
-        retcode = not _execute_cmd(cmds, output, timeout)[1]
+        retcode = not execute_commands(cmds, output, timeout)[1]
         return (retcode, dest) if retcode else (retcode, EMPTY_STR)
 
     def names_for_import(self):
@@ -989,7 +993,9 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     py_file.write(source_code)
             except Exception:
                 return [], ()
-        result, retcode = _execute_cmd(Command(self.interpreter, _path), False, None)
+        result, retcode = execute_commands(
+            Command(self.interpreter, _path), False, None
+        )
         if retcode or not result:
             return [], ()
         try:
@@ -1095,7 +1101,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         pipexe_path = os.path.join(scripts_dir_path, PIP_EXE)
         pip3exe_path = os.path.join(scripts_dir_path, "pip3.exe")
         cmds = Command(self.interpreter, *_PIPCMDS["ENSUREPIP"])
-        bool_res = not _execute_cmd(cmds, output, None)[1]
+        bool_res = not execute_commands(cmds, output, None)[1]
         if (
             bool_res
             and os.path.isfile(pip3exe_path)
