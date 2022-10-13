@@ -3,7 +3,7 @@
 __all__ = ["NAME", "AUTHOR", "EMAIL", "WEBSITE", "VERSION", "VERNUM"]
 
 NAME = "fastpip"
-VERNUM = 0, 15, 0
+VERNUM = 1, 0, 0
 AUTHOR = "hrpzcf"
 EMAIL = "hrpzcf@foxmail.com"
 WEBSITE = "https://github.com/hrpzcf/fastpip"
