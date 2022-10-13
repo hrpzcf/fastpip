@@ -390,7 +390,7 @@ class PyEnv:
             return py_info.format("0.0.0", "?")
         # e.g., '3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]' etc.
         m_obj = re.match(
-            r"(\d+\.\d+\.\d+)\+? (?:\(|\|).+(32|64) bit \(.+\)", result, re.S
+            r"(\d+\.\d+\.\d+)\+? [(|].+(32|64) bit \(.+\)", result, re.S
         )
         if not m_obj:
             return py_info.format("0.0.0", "?")
