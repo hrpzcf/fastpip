@@ -153,7 +153,7 @@ def parse_package_names(names):
     例如传入['fastpip>=0.5,<0.8']，返回['fastpip']。
     """
     package_names = list()
-    pt = re.compile(r"[^\<\>\=\,]+")
+    pt = re.compile(r"[^<>=,!]+")
     for n in names:
         m_obj = pt.match(n)
         if not m_obj:
