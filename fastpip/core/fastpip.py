@@ -112,10 +112,10 @@ def execute_commands(
     """
     ### 执行命令，打印命令输出，返回输出字符串和结束状态码。
 
-    请注意，如果 output 参数为 True，则 timeout 参数无效。
+    请注意，如果 output 参数值为 True，则 timeout 参数不生效。
 
     ```python
-    :param cmds: Command, 要执行的命令
+    :param cmds: Command, 要执行的命令，详见 Command 类的文档
     :param output: bool, 是否逐行向控制台打印命令的输出流
     :param timeout,  Union[int, float, None], 执行命令的超时时长，单位：秒
     :return: Tuple[str, int], 命令执行时输出的全部字符串和退出状态码
@@ -512,6 +512,8 @@ class PyEnv:
         """
         ### 获取该 Python 目录下已安装的包列表，列表包含(包名, 版本)元组，没有获取到则返回空列表。
 
+        请注意，如果 output 参数值为 True，则 timeout 参数不生效。
+
         ```
         :param output: bool, 在终端上显示命令输出，默认 False。
 
@@ -538,6 +540,8 @@ class PyEnv:
         """
         ### 获取该 Python 目录下已安装的包名列表，没有获取到包名列表则返回空列表。
 
+        请注意，如果 output 参数值为 True，则 timeout 参数不生效。
+
         ```
         :param output: bool, 在终端上显示命令输出，默认 False。
 
@@ -563,9 +567,12 @@ class PyEnv:
     def outdated(self, *, output=False, timeout=60):
         """
         ### 获取可更新的包列表。
-        列表包含(包名, 已安装版本, 最新版本, 安装包类型)元组，如果没有获取到或者没有可更新的包，返回空列表。
 
-        检查更新时，环境中已安装的包越多耗费时间越多，请耐心等待。
+        列表包含(包名, 已安装版本, 最新版本, 安装包类型)，如果没有获取到或者没有可更新的包，返回空列表。
+
+        检查更新时，耗时多少与环境中已安装的包数量有关，也与 PyPi 镜像地址的连通流畅度有关，请耐心等待。
+
+        请注意，如果 output 参数值为 True，则 timeout 参数不生效。
 
         ```
         :param output: bool, 在终端上显示命令输出，默认 False。
@@ -605,6 +612,8 @@ class PyEnv:
     def upgrade_pip(self, *, index_url="", output=False, timeout=None):
         """
         ### 升级 pip。
+
+        请注意，如果 output 参数值为 True，则 timeout 参数不生效。
 
         ```
         :param index_url: str, 镜像源地址，可为空字符串，默认使用系统内设置的全局镜像源。
@@ -677,6 +686,8 @@ class PyEnv:
         注意：包名 names 中只要有一个不可安装(无资源等原因)，其他包也不会被安装。
 
         所以如果不能保证 names 中所有的包都能被安装，那最好每次只传入一个包名，循环调用 install 方法安装所有的包。
+
+        请注意，如果 output 参数值为 True，则 timeout 参数不生效。
 
         ```
         :param names: str, 第三方包名(可变数量参数)。
@@ -759,6 +770,8 @@ class PyEnv:
         """
         ### 卸载 Python 第三方包。
 
+        请注意，如果 output 参数值为 True，则 timeout 参数不生效。
+
         ```
         param names: str, 不定长参数。要卸载的包名，可以传入多个包名，此参数必选。
 
@@ -791,6 +804,8 @@ class PyEnv:
         ### 下载指定的包。
 
         提示：当使用 python_version、platform、abis 或 implementation 参数约束平台和解释器时，必须设置 no_deps 参数值为 True，不能设置 only_binary 参数，不能设置 no_binary 参数。
+
+        请注意，如果 output 参数值为 True，则 timeout 参数不生效。
 
         ```
         :param names: str, 不定长参数。包名，可同时传入多个包名，此参数必选。
@@ -1131,9 +1146,9 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         """
         ### 此方法用于当环境中没有 pip 模块时使用副本恢复 pip。
 
-        是否能恢复成功取决于该环境是否保存了 pip 副本。
+        是否能恢复成功取决于该环境是否缓存了 pip 副本。
 
-        请注意，恢复的 pip 并不一定是最新版，如果想更新 'pip'，请接着调用 'upgrade_pip' 方法。
+        请注意，恢复的 pip 并不一定是最新版，如果想更新 pip，请接着调用 upgrade_pip 方法。
         """
         if not self.env_path:
             return False
@@ -1141,9 +1156,9 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         pipexe_path = os.path.join(scripts_dir_path, PIP_EXE)
         pip3exe_path = os.path.join(scripts_dir_path, "pip3.exe")
         cmds = Command(self.interpreter, *_PIPCMDS["ENSUREPIP"])
-        bool_res = not self.__execute(cmds, output, None)[1]
+        bool_result = not self.__execute(cmds, output, None)[1]
         if (
-            bool_res
+            bool_result
             and os.path.isfile(pip3exe_path)
             and (not os.path.isfile(pipexe_path))
         ):
@@ -1151,7 +1166,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                 shutil.copy(pip3exe_path, pipexe_path)
             except Exception:
                 pass
-        return bool_res
+        return bool_result
 
     def scripts_path(self):
         """
