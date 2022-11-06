@@ -1088,10 +1088,12 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         for dir_name in dist_egg_dirs:
             dir_fullpath = os.path.join(pkgs_host, dir_name)
             if dir_name.endswith(".egg-info"):
-                infofile_name = "PKG-INFO"
+                info_file = "PKG-INFO"
             elif dir_name.endswith(".dist-info"):
-                infofile_name = "METADATA"
-            infofile_path = os.path.join(dir_fullpath, infofile_name)
+                info_file = "METADATA"
+            else:
+                continue
+            infofile_path = os.path.join(dir_fullpath, info_file)
             if not os.path.exists(infofile_path):
                 continue
             try:
