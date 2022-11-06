@@ -237,11 +237,11 @@ class PyEnv:
         PyEnv 类无参数实例化时或参数值为 None 实例化时，使用 cur_py_path 函数选取系统环境变量 PATH 中的首个 Python 目录路径，如果系统环境变量 PATH 中没有找到 Python 目录路径，则将路径属性 path 及 env_path 设置为空字符串。
         """
         self.__time_last_activity = time.time()
+        self.__cached_pkgs_importables: Dict[str, set] = dict()
+        self.__cached_python_info = EMPTY_STR
         # 解释器是否在 Scripts 目录的标识
         self.__pyexe_in_scripts = False
         self.__designated_path = self.__init_path(path)
-        self.__cached_python_info = EMPTY_STR
-        self.__cached_pkgs_importables = dict()
 
     @staticmethod
     def __init_path(_path):
@@ -1007,6 +1007,8 @@ class PyEnv:
 
         包名非 str 则抛出 TypeError 异常。
         """
+        if not self.env_path:
+            return list()
         if not isinstance(module_or_pkg_name, str):
             raise TypeError("参数 name 数据类型错误，数据类型应为 'str'。")
         if fresh:
@@ -1031,10 +1033,8 @@ class PyEnv:
         return list()
 
     def __read_syspath_builtins(self):
-        """读取目标 Python 环境的 sys.path 和 sys.builtin_module_names 属性。"""
+        """读取目标环境的 sys.path 和 sys.builtin_module_names 属性。"""
         self.cleanup_old_scripts()
-        if not self.env_path:
-            return []
         source_code = """import sys
 print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         _path = os.path.join(self.FILE_DIR, f"ReadSYSPB.{VERSION}")
@@ -1092,7 +1092,6 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             elif dir_name.endswith(".dist-info"):
                 infofile_name = "METADATA"
             infofile_path = os.path.join(dir_fullpath, infofile_name)
-            print(infofile_path)
             if not os.path.exists(infofile_path):
                 continue
             try:
@@ -1192,6 +1191,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         ```
         """
         self.__cached_pkgs_importables.clear()
+        if not self.env_path:
+            return dict()
         sys_paths, builtins = self.__read_syspath_builtins()
         for name in builtins:
             self.__cached_pkgs_importables[name] = {name}
@@ -1224,6 +1225,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         :return: str, 包的名称，该名称一般用于安装，比如用于 pip 命令安装等。
         ```
         """
+        if not self.env_path:
+            return EMPTY_STR
         if not isinstance(import_name, str):
             raise TypeError("参数 import_name 类型错误，类型应为 'str'。")
         if fresh:
