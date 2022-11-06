@@ -33,7 +33,7 @@ import time
 from collections import OrderedDict
 from random import randint
 from subprocess import *
-from typing import Callable, Tuple, Union
+from typing import Callable, Dict, Tuple, Union, List
 
 from ..__version__ import VERSION
 from ..com.common import *  # 一些常用量
@@ -1066,44 +1066,49 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         :return: dict[str: set[str...]...], 即：{包名: {import 名, ...}, ...}
         """
         toplevel_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
-        metadata_name_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-]+)$")
+        package_name_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-]+)$")
         module_pattern = re.compile(r"^([A-Za-z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
-        publish_importable_names = dict()
+        publish_importable_names: Dict[str, set] = dict()
         try:
-            modules_packages_path = os.listdir(pkgs_host)
+            modules_packages_name = os.listdir(pkgs_host)
         except Exception:
             return publish_importable_names
-        dist_dirs = list()
-        nodist_dirs = list()
-        mod_files = list()
-        for pkg_path in modules_packages_path:
-            fullpath = os.path.join(pkgs_host, pkg_path)
+        module_files: List[str] = list()
+        nodist_dirs: List[str] = list()
+        dist_egg_dirs: List[str] = list()
+        for fdname in modules_packages_name:
+            fullpath = os.path.join(pkgs_host, fdname)
             if os.path.isdir(fullpath):
-                if pkg_path.endswith(".dist-info") or pkg_path.endswith(".egg-info"):
-                    dist_dirs.append(pkg_path)
+                if fdname.endswith(".dist-info") or fdname.endswith(".egg-info"):
+                    dist_egg_dirs.append(fdname)
                 else:
-                    nodist_dirs.append(pkg_path)
+                    nodist_dirs.append(fdname)
             elif os.path.isfile(fullpath):
-                mod_files.append(pkg_path)
-        for dist_dir in dist_dirs:
-            dir_fullpath = os.path.join(pkgs_host, dist_dir)
-            toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
-            metadata = os.path.join(dir_fullpath, "METADATA")
-            if not os.path.exists(metadata):
+                module_files.append(fdname)
+        for dir_name in dist_egg_dirs:
+            dir_fullpath = os.path.join(pkgs_host, dir_name)
+            if dir_name.endswith(".egg-info"):
+                infofile_name = "PKG-INFO"
+            elif dir_name.endswith(".dist-info"):
+                infofile_name = "METADATA"
+            infofile_path = os.path.join(dir_fullpath, infofile_name)
+            print(infofile_path)
+            if not os.path.exists(infofile_path):
                 continue
             try:
-                with open(metadata, "rt", encoding="utf-8") as md:
+                with open(infofile_path, "rt", encoding="utf-8") as md:
                     metadata_lines = md.readlines()
             except Exception:
                 continue
-            name_metadata_matched = None
+            name_pkginfo_matched = None
             for line in metadata_lines[1:]:
-                name_metadata_matched = metadata_name_pattern.match(line)
-                if name_metadata_matched:
+                name_pkginfo_matched = package_name_pattern.match(line)
+                if name_pkginfo_matched:
                     break
-            if not name_metadata_matched:
+            if not name_pkginfo_matched:
                 continue
-            pkg_published_name = name_metadata_matched.group(1)
+            pkg_published_name = name_pkginfo_matched.group(1)
+            toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
             if not os.path.exists(toplevel_txt):
                 if pkg_published_name not in publish_importable_names:
                     publish_importable_names[pkg_published_name] = set()
@@ -1131,8 +1136,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     publish_importable_names[nodist_dir] = {nodist_dir}
                 else:
                     publish_importable_names[nodist_dir].add(nodist_dir)
-        for mod_file in mod_files:
-            mod_file_matched = module_pattern.match(mod_file)
+        for module_file in module_files:
+            mod_file_matched = module_pattern.match(module_file)
             if not mod_file_matched:
                 continue
             module_importable = mod_file_matched.group(1)
