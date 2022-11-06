@@ -987,9 +987,9 @@ class PyEnv:
 
     def query_for_import(self, module_or_pkg_name: str, *, case=True, fresh=False):
         """
-        ### 通过包名/模块的发布名称查询该包/模块用于 import 语句的名称。
+        ### 通过包名称查询该包用于 import 语句的名称。
 
-        例如，pywin32是一个 Windows API 库的发布名称，使用时是 import win32api、import win32con 等，
+        例如，pywin32 是一个 Windows API 包的名称，import 语句使用 win32api、win32con 等名称而非 import pywin32，
 
         此方法可以输入 pywin32 作为 module_or_pkg_name 参数，查询得到 ['win32api', 'win32con'...] 这样的结果。
 
@@ -1061,9 +1061,9 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
     @staticmethod
     def __pkgs_importables_from(pkgs_host):
         """
-        从 sys.path 中的一个路径 pkgs_host '包发布名: import 名'映射表。
+        从 sys.path 中的一个路径：pkgs_host 获取'包名: import 名'映射表。
 
-        :return: dict[str: set[str...]...], 即：{模块发布名: {import 名, ...}, ...}
+        :return: dict[str: set[str...]...], 即：{包名: {import 名, ...}, ...}
         """
         toplevel_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
         metadata_name_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-]+)$")
@@ -1180,7 +1180,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
 
     def get_map_packages_importables(self):
         """
-        ### 获取本环境下包/模块的发布名与导入名的映射表并在 PyEnv 实例内缓存。
+        ### 获取本环境下包名与导入名的映射表并在 PyEnv 实例内缓存。
 
         ```
         :return: dict[str: set[str...]...]
@@ -1201,7 +1201,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
 
     def query_for_install(self, import_name, *, case=True, fresh=False):
         """
-        ### 通过 import 语句所使用的模块名称反向查询该名称对应的包/模块的发布名称。
+        ### 通过 import 语句所使用的名称反向查询该名称对应的包名。
 
         因为不是所有的包/模块的安装名称和用于导入的名称都是一样的，比如 pywin32，使用时就是 import win32api 等。
 
