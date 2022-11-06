@@ -25,7 +25,6 @@ SOFTWARE."""
 __all__ = [
     "AUTHOR",
     "Command",
-    "EMAIL",
     "LICENSE",
     "NAME",
     "PipInformation",

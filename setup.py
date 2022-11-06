@@ -4,7 +4,7 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-from fastpip import AUTHOR, EMAIL, NAME, VERSION, WEBSITE
+from fastpip import AUTHOR, NAME, VERSION, WEBSITE
 
 description = "一个 pip 命令包，帮助你实现使用 Python 编程的方式进行包管理操作。"
 try:
@@ -16,11 +16,8 @@ except Exception:
 setup(
     name=NAME,
     version=VERSION,
-    author=AUTHOR,
-    author_email=EMAIL,
-    maintainer=AUTHOR,
-    maintainer_email=EMAIL,
     description=description,
+    author=AUTHOR,
     long_description=long_description,
     long_description_content_type="text/markdown",
     url=WEBSITE,
