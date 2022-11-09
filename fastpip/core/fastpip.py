@@ -1157,8 +1157,16 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                 pkg_realname = name_pkginfo_matched.group(1)
                 toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
                 if not os.path.exists(toplevel_txt):
+                    realname_temp = pkg_realname.replace("-", "_")
+                    impname_matched = canonical_name_pattern.match(realname_temp)
+                    if not impname_matched:
+                        continue
+                    pkg_impname = impname_matched.group()
+                    if pkg_impname not in valid_module_package_names:
+                        continue
                     if pkg_realname not in self.__cached_pkgs_importables:
                         self.__cached_pkgs_importables[pkg_realname] = set()
+                    self.__cached_pkgs_importables[pkg_realname].add(pkg_impname)
                     continue
                 pkg_impables = set()
                 try:
