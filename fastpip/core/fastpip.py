@@ -1096,14 +1096,20 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             if not os.path.isdir(packages_host):
                 continue
             try:
-                modules_packages_name = os.listdir(packages_host)
+                module_package_fdnames = os.listdir(packages_host)
             except Exception:
                 continue
             pths_prefixs: Set[str] = set()
             singlefile_modulenames: Set[str] = set()
             nondist_dirs: Set[str] = set()
+            valid_module_package_names: Set[str] = set()
             dist_egg_dirs: List[str] = list()
-            for fdname in modules_packages_name:
+            for name in module_package_fdnames:
+                name_matched = canonical_name_pattern.match(name)
+                if not name_matched:
+                    continue
+                valid_module_package_names.add(name_matched.group())
+            for fdname in module_package_fdnames:
                 fullpath = os.path.join(packages_host, fdname)
                 if os.path.isdir(fullpath):
                     if fdname.lower().endswith((".dist-info", ".egg-info")):
@@ -1166,6 +1172,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                         if not toplevel_imp_matched:
                             continue
                         pkgname_in_toplevel = toplevel_imp_matched.group()
+                        if pkgname_in_toplevel not in valid_module_package_names:
+                            continue
                         pkg_impables.add(pkgname_in_toplevel)
                         names_in_toplevel.add(pkgname_in_toplevel)
                 except Exception:
