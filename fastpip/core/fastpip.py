@@ -31,6 +31,7 @@ import re
 import shutil
 import time
 from collections import OrderedDict
+from copy import deepcopy
 from random import randint
 from subprocess import *
 from typing import Callable, Dict, List, Set, Tuple, Union
@@ -237,7 +238,7 @@ class PyEnv:
         PyEnv 类无参数实例化时或参数值为 None 实例化时，使用 cur_py_path 函数选取系统环境变量 PATH 中的首个 Python 目录路径，如果系统环境变量 PATH 中没有找到 Python 目录路径，则将路径属性 path 及 env_path 设置为空字符串。
         """
         self.__time_last_activity = time.time()
-        self.__cached_pkgs_importables: Dict[str, set] = dict()
+        self.__cached_packages_imps: Dict[str, Set[str]] = dict()
         self.__cached_python_info = EMPTY_STR
         # 解释器是否在 Scripts 目录的标识
         self.__pyexe_in_scripts = False
@@ -979,7 +980,7 @@ class PyEnv:
             return set()
         self.__gen_packages_importables()
         pkg_import_names = set()
-        for names in self.__cached_pkgs_importables.values():
+        for names in self.__cached_packages_imps.values():
             pkg_import_names.update(names)
         return pkg_import_names
 
@@ -1010,17 +1011,17 @@ class PyEnv:
         if not isinstance(module_or_pkg_name, str):
             raise TypeError("参数 name 数据类型错误，数据类型应为 'str'。")
         if fresh:
-            self.__cached_pkgs_importables.clear()
+            self.__cached_packages_imps.clear()
         else:
             if (
                 time.time() - self.__time_last_activity
                 > PyEnv._cache_refresh_maximum_interval
             ):
-                self.__cached_pkgs_importables.clear()
+                self.__cached_packages_imps.clear()
         self.__time_last_activity = time.time()
-        if not self.__cached_pkgs_importables:
+        if not self.__cached_packages_imps:
             self.__gen_packages_importables()
-        for publish_name, value in self.__cached_pkgs_importables.items():
+        for publish_name, value in self.__cached_packages_imps.items():
             if case:
                 cased_value = publish_name
             else:
@@ -1081,70 +1082,74 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         :return: dict[str: set[str...]...]
         ```
         """
-        self.__cached_pkgs_importables.clear()
+        self.__cached_packages_imps.clear()
         if not self.env_path:
             return dict()
         hosts_in_sys_paths, builtin_imps = self.__read_syspath_builtins()
         for name in builtin_imps:
-            self.__cached_pkgs_importables[name] = {name}
+            self.__cached_packages_imps[name] = {name}
         info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-]+)$")
         module_pattern = re.compile(r"^([A-Za-z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
-        canonical_name_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
-        host_ascriptions: Dict[str, str] = dict()
-        names_in_toplevel: Set[str] = set()
-        for packages_host in hosts_in_sys_paths:
-            if not os.path.isdir(packages_host):
+        canonical_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
+        full_canonical_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
+        hosts_files_dirs: Dict[str, Set[str]] = dict()
+        hosts_canonical_pkgsmods: Dict[str, str] = dict()
+        attributed_hosts: Dict[str, str] = dict()
+        for pkgs_host in hosts_in_sys_paths:
+            if not os.path.isdir(pkgs_host):
                 continue
             try:
-                module_package_fdnames = os.listdir(packages_host)
+                filedir_names_inhost = os.listdir(pkgs_host)
             except Exception:
                 continue
-            pths_prefixs: Set[str] = set()
-            singlefile_modulenames: Set[str] = set()
-            nondist_dirs: Set[str] = set()
-            valid_module_package_names: Set[str] = set()
-            dist_egg_dirs: List[str] = list()
-            for name in module_package_fdnames:
-                name_matched = canonical_name_pattern.match(name)
-                if not name_matched:
-                    continue
-                valid_module_package_names.add(name_matched.group())
-            for fdname in module_package_fdnames:
-                fullpath = os.path.join(packages_host, fdname)
-                if os.path.isdir(fullpath):
-                    if fdname.lower().endswith((".dist-info", ".egg-info")):
-                        dist_egg_dirs.append(fdname)
-                    else:
-                        nondist_dirs.add(fdname)
-                elif os.path.isfile(fullpath):
-                    if fdname.lower().endswith(".pth"):
-                        prefixs_each_pth = self.__prefixs_from_pth(fullpath)
-                        pths_prefixs.update(prefixs_each_pth)
-                        pthname_matched = canonical_name_pattern.match(fdname)
+            pkgs_host = os.path.normcase(pkgs_host)
+            if pkgs_host not in hosts_files_dirs:
+                hosts_files_dirs[pkgs_host] = set()
+            hosts_files_dirs[pkgs_host].update(filedir_names_inhost)
+            host_attribution = EMPTY_STR
+            for fdname in filedir_names_inhost:
+                fdpath = os.path.join(pkgs_host, fdname)
+                if os.path.isdir(fdpath):
+                    if full_canonical_pattern.match(fdname):
+                        hosts_canonical_pkgsmods[fdname] = fdname
+                elif os.path.isfile(fdpath):
+                    fdname_lower = fdname.lower()
+                    if fdname_lower.endswith(".pth"):
+                        each_pth_prefs = self.__prefixs_from_pth(fdpath)
+                        if not each_pth_prefs:
+                            continue
+                        pthname_matched = canonical_pattern.match(fdname)
                         if pthname_matched:
-                            pth_attributed_pkgname = pthname_matched.group()
-                            for prefix in prefixs_each_pth:
-                                prefix = os.path.normcase(prefix)
-                                host_ascriptions[prefix] = pth_attributed_pkgname
-                        continue
-                    module_matched = module_pattern.match(fdname)
-                    if not module_matched:
-                        continue
-                    singlefile_modulenames.add(module_matched.group(1))
-            for dir_name in dist_egg_dirs:
-                dir_fullpath = os.path.join(packages_host, dir_name)
-                if dir_name.endswith(".egg-info"):
-                    info_file = "PKG-INFO"
-                elif dir_name.endswith(".dist-info"):
+                            host_attribution = pthname_matched.group()
+                        for prefix in each_pth_prefs:
+                            prefix = os.path.normcase(prefix)
+                            host_inpth = os.path.join(pkgs_host, prefix)
+                            attributed_hosts[host_inpth] = host_attribution
+                    elif fdname_lower.endswith((".py", ".pyc", ".pyd", "pyw")):
+                        module_matched = module_pattern.match(fdname)
+                        if not module_matched:
+                            continue
+                        module_name = module_matched.group(1)
+                        hosts_canonical_pkgsmods[module_name] = fdname
+        processed_fdnames: Set[str] = set()
+        for pkgs_host, fdnames_inhost in hosts_files_dirs.items():
+            for fdname in fdnames_inhost:
+                dir_fullpath = os.path.join(pkgs_host, fdname)
+                if not os.path.isdir(dir_fullpath):
+                    continue
+                if fdname.endswith(".dist-info"):
                     info_file = "METADATA"
+                elif fdname.endswith(".egg-info"):
+                    info_file = "PKG-INFO"
                 else:
                     continue
-                infofile_path = os.path.join(dir_fullpath, info_file)
-                if not os.path.exists(infofile_path):
+                processed_fdnames.add(fdname)
+                info_fullpath = os.path.join(dir_fullpath, info_file)
+                if not os.path.exists(info_fullpath):
                     continue
                 try:
-                    with open(infofile_path, "rt", encoding="utf-8") as md:
-                        metadata_lines = md.readlines()
+                    with open(info_fullpath, "rt", encoding="utf-8") as f:
+                        metadata_lines = f.readlines()
                 except Exception:
                     continue
                 name_pkginfo_matched = EMPTY_STR
@@ -1154,69 +1159,60 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                         break
                 if not name_pkginfo_matched:
                     continue
-                pkg_realname = name_pkginfo_matched.group(1)
+                realname = name_pkginfo_matched.group(1)
                 toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
                 if not os.path.exists(toplevel_txt):
-                    realname_temp = pkg_realname.replace("-", "_")
-                    impname_matched = canonical_name_pattern.match(realname_temp)
+                    impname_matched = canonical_pattern.match(
+                        realname.replace("-", "_")
+                    )
                     if not impname_matched:
                         continue
-                    pkg_impname = impname_matched.group()
-                    if pkg_impname not in valid_module_package_names:
+                    impname = impname_matched.group()
+                    if impname not in hosts_canonical_pkgsmods:
                         continue
-                    if pkg_realname not in self.__cached_pkgs_importables:
-                        self.__cached_pkgs_importables[pkg_realname] = set()
-                    self.__cached_pkgs_importables[pkg_realname].add(pkg_impname)
+                    if realname not in self.__cached_packages_imps:
+                        self.__cached_packages_imps[realname] = set()
+                    self.__cached_packages_imps[realname].add(impname)
+                    processed_fdnames.add(hosts_canonical_pkgsmods[impname])
                     continue
-                pkg_impables = set()
+                impables = set()
                 try:
                     with open(toplevel_txt, "rt", encoding="utf-8") as tt:
                         toplevel_txt_lines = tt.readlines()
                     for line in toplevel_txt_lines:
                         prefix, suffix = os.path.split(line.rstrip())
-                        if prefix and os.path.normcase(prefix) not in pths_prefixs:
-                            continue
-                        toplevel_imp_matched = canonical_name_pattern.match(suffix)
+                        toplevel_imp_matched = canonical_pattern.match(suffix)
                         if not toplevel_imp_matched:
                             continue
-                        pkgname_in_toplevel = toplevel_imp_matched.group()
-                        if pkgname_in_toplevel not in valid_module_package_names:
+                        impname_in_toplevel = toplevel_imp_matched.group()
+                        if impname_in_toplevel not in hosts_canonical_pkgsmods:
                             continue
-                        pkg_impables.add(pkgname_in_toplevel)
-                        names_in_toplevel.add(pkgname_in_toplevel)
+                        impables.add(impname_in_toplevel)
+                        processed_fdnames.add(
+                            hosts_canonical_pkgsmods[impname_in_toplevel]
+                        )
                 except Exception:
                     pass
-                if pkg_realname not in self.__cached_pkgs_importables:
-                    self.__cached_pkgs_importables[pkg_realname] = pkg_impables
-                else:
-                    self.__cached_pkgs_importables[pkg_realname].update(pkg_impables)
-            final_pkgname = EMPTY_STR
-            packages_host_cased = os.path.normcase(packages_host)
-            for prefix in host_ascriptions:
-                if packages_host_cased.endswith(prefix):
-                    final_pkgname = host_ascriptions[prefix]
-                    break
-            for nondist_dir in nondist_dirs:
-                if nondist_dir in names_in_toplevel or not os.path.isfile(
-                    os.path.join(packages_host, nondist_dir, "__init__.py")
-                ):
+                if realname not in self.__cached_packages_imps:
+                    self.__cached_packages_imps[realname] = set()
+                self.__cached_packages_imps[realname].update(impables)
+        for pkgs_host, fdnames_inhost in hosts_files_dirs.items():
+            pkgname = attributed_hosts.get(pkgs_host, None)
+            for fdname in fdnames_inhost:
+                if fdname in processed_fdnames:
                     continue
-                if not final_pkgname:
-                    final_pkgname = nondist_dir
-                if final_pkgname not in self.__cached_pkgs_importables:
-                    self.__cached_pkgs_importables[final_pkgname] = {nondist_dir}
-                else:
-                    self.__cached_pkgs_importables[final_pkgname].add(nondist_dir)
-            for module_name in singlefile_modulenames:
-                if module_name in names_in_toplevel:
+                flag_fdname_canonical = False
+                for canon_name, real in hosts_canonical_pkgsmods.items():
+                    if fdname == real:
+                        flag_fdname_canonical = True
+                        break
+                if not flag_fdname_canonical:
                     continue
-                if not final_pkgname:
-                    final_pkgname = module_name
-                if final_pkgname not in self.__cached_pkgs_importables:
-                    self.__cached_pkgs_importables[final_pkgname] = {module_name}
-                else:
-                    self.__cached_pkgs_importables[final_pkgname].add(module_name)
-        return self.__cached_pkgs_importables
+                final_pkgname = pkgname if pkgname else canon_name
+                if final_pkgname not in self.__cached_packages_imps:
+                    self.__cached_packages_imps[final_pkgname] = set()
+                self.__cached_packages_imps[final_pkgname].add(canon_name)
+        return self.__cached_packages_imps
 
     def ensurepip(self, output=False):
         """
@@ -1279,17 +1275,17 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         if not isinstance(import_name, str):
             raise TypeError("参数 import_name 类型错误，类型应为 'str'。")
         if fresh:
-            self.__cached_pkgs_importables.clear()
+            self.__cached_packages_imps.clear()
         else:
             if (
                 time.time() - self.__time_last_activity
                 > PyEnv._cache_refresh_maximum_interval
             ):
-                self.__cached_pkgs_importables.clear()
+                self.__cached_packages_imps.clear()
         self.__time_last_activity = time.time()
-        if not self.__cached_pkgs_importables:
+        if not self.__cached_packages_imps:
             self.__gen_packages_importables()
-        for publish_name, value in self.__cached_pkgs_importables.items():
+        for publish_name, value in self.__cached_packages_imps.items():
             if case:
                 cased_value = value
             else:
@@ -1298,3 +1294,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             if import_name in cased_value:
                 return publish_name
         return EMPTY_STR
+
+    def pkgimp_mapping(self):
+        # TODO
+        return deepcopy(self.__gen_packages_importables())
