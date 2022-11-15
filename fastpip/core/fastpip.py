@@ -1023,10 +1023,10 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         hosts_in_sys_paths, builtin_imps = self.__read_syspath_builtins()
         for name in builtin_imps:
             self.__cached_packages_imps[name] = {name}
-        info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-]+)$")
-        module_pattern = re.compile(r"^([A-Za-z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
-        canonical_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
-        full_canonical_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
+        info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-\.]+)$")
+        module_pattern = re.compile(r"^([A-Z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
+        canonical_dir_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
+        full_canonical_dir_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
         hosts_files_dirs: Dict[str, Set[str]] = dict()
         # {pth_host: (owner_host, owner_pkg)}
         attributed_hosts: Dict[str, Tuple[str, str]] = dict()
@@ -1047,7 +1047,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     each_pth_prefs = self.__prefixs_from_pth(fdpath)
                     if not each_pth_prefs:
                         continue
-                    pthname_matched = canonical_pattern.match(fdname)
+                    pthname_matched = canonical_dir_pattern.match(fdname)
                     if not pthname_matched:
                         continue
                     owner_pkg = pthname_matched.group()
@@ -1067,7 +1067,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             for fdname in fdnames_inhost:
                 fdpath = os.path.join(pkgs_host, fdname)
                 if os.path.isdir(fdpath):
-                    if full_canonical_pattern.match(fdname):
+                    if full_canonical_dir_pattern.match(fdname):
                         pkgsmods_perhost[main_host][fdname] = (fdpath, fdname)
                 elif os.path.isfile(fdpath) and fdname.lower().endswith(
                     (".py", ".pyc", ".pyd", "pyw")
@@ -1111,10 +1111,13 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                         break
                 if not name_pkginfo_matched:
                     continue
+                pkg_importables: Set[str] = set()
                 realname = name_pkginfo_matched.group(1)
+                if PKG_SEPDOT in realname:
+                    pkg_importables.add(realname)
                 toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
                 if not os.path.exists(toplevel_txt):
-                    impname_matched = canonical_pattern.match(
+                    impname_matched = canonical_dir_pattern.match(
                         realname.replace("-", "_")
                     )
                     if not impname_matched:
@@ -1127,25 +1130,24 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     self.__cached_packages_imps[realname].add(impname)
                     each_host_proced.add(pkgsmods_thishost[impname][1])
                     continue
-                impables = set()
                 try:
                     with open(toplevel_txt, "rt", encoding="utf-8") as tt:
                         toplevel_txt_lines = tt.readlines()
                     for line in toplevel_txt_lines:
                         prefix, suffix = os.path.split(line.rstrip())
-                        toplevel_imp_matched = canonical_pattern.match(suffix)
+                        toplevel_imp_matched = canonical_dir_pattern.match(suffix)
                         if not toplevel_imp_matched:
                             continue
                         impname_in_toplevel = toplevel_imp_matched.group()
                         if impname_in_toplevel not in pkgsmods_thishost:
                             continue
-                        impables.add(impname_in_toplevel)
+                        pkg_importables.add(impname_in_toplevel)
                         each_host_proced.add(pkgsmods_thishost[impname_in_toplevel][1])
                 except Exception:
                     pass
                 if realname not in self.__cached_packages_imps:
                     self.__cached_packages_imps[realname] = set()
-                self.__cached_packages_imps[realname].update(impables)
+                self.__cached_packages_imps[realname].update(pkg_importables)
         for pkgs_host, fdnames_inhost in hosts_files_dirs.items():
             if pkgs_host in attributed_hosts:
                 main_host, pkgname = attributed_hosts[pkgs_host]
