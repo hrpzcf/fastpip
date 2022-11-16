@@ -1272,7 +1272,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         if not self.env_path:
             return list()
         if not isinstance(module_or_pkg_name, str):
-            raise TypeError("参数 name 数据类型错误，数据类型应为 'str'。")
+            raise TypeError("参数 1 数据类型错误，数据类型应为 str")
         self.__check_refresh_requirements(fresh)
         for publish_name, value in self.__cached_packages_imps.items():
             if case:
@@ -1310,7 +1310,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         if not self.env_path:
             return dict()
         if not isinstance(module_or_pkg_name, str):
-            raise TypeError("参数 name 数据类型错误，数据类型应为 'str'。")
+            raise TypeError("参数 1 数据类型错误，数据类型应为 str")
         self.__check_refresh_requirements(fresh)
         for publish_name, value in self.__cached_packages_imps.items():
             if case:
@@ -1346,7 +1346,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         if not self.env_path:
             return EMPTY_STR
         if not isinstance(name_used_for_import, str):
-            raise TypeError("参数 name_used_for_import 类型错误，类型应为 'str'。")
+            raise TypeError("参数 1 类型错误，类型应为 str")
         self.__check_refresh_requirements(fresh)
         for publish_name, value in self.__cached_packages_imps.items():
             if case:
