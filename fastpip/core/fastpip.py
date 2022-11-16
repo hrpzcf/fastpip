@@ -1163,14 +1163,21 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             for fdname in fdnames_inhost:
                 if fdname in each_host_proced:
                     continue
+                fdpath = os.path.normcase(os.path.join(pkgs_host, fdname))
+                if fdpath in attributed_hosts:
+                    temp_host, temp_pkgname = attributed_hosts[fdpath]
+                    temp_pkgsmods = pkgsmods_perhost.get(temp_host, dict())
+                else:
+                    temp_pkgname = pkgname
+                    temp_pkgsmods = pkgsmods_thishost
                 flag_fdname_canonical = False
-                for canon_name, pathfile in pkgsmods_thishost.items():
+                for canon_name, pathfile in temp_pkgsmods.items():
                     if fdname == pathfile[1]:
                         flag_fdname_canonical = True
                         break
                 if not flag_fdname_canonical:
                     continue
-                final_pkgname = pkgname if pkgname else canon_name
+                final_pkgname = temp_pkgname if temp_pkgname else canon_name
                 if final_pkgname not in self.__cached_packages_imps:
                     self.__cached_packages_imps[final_pkgname] = dict()
                 self.__cached_packages_imps[final_pkgname][canon_name] = pathfile[0]
