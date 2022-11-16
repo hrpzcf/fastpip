@@ -1025,8 +1025,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             self.__cached_packages_imps[name] = {name}
         info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-\.]+)$")
         module_pattern = re.compile(r"^([A-Z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
-        canonical_dir_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
-        full_canonical_dir_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
+        canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
+        full_canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
         hosts_files_dirs: Dict[str, Set[str]] = dict()
         # {pth_host: (owner_host, owner_pkg)}
         attributed_hosts: Dict[str, Tuple[str, str]] = dict()
@@ -1047,7 +1047,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     each_pth_prefs = self.__prefixs_from_pth(fdpath)
                     if not each_pth_prefs:
                         continue
-                    pthname_matched = canonical_dir_pattern.match(fdname)
+                    pthname_matched = canonical_imp_pattern.match(fdname)
                     if not pthname_matched:
                         continue
                     owner_pkg = pthname_matched.group()
@@ -1067,7 +1067,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             for fdname in fdnames_inhost:
                 fdpath = os.path.join(pkgs_host, fdname)
                 if os.path.isdir(fdpath):
-                    if full_canonical_dir_pattern.match(fdname):
+                    if full_canonical_imp_pattern.match(fdname):
                         pkgsmods_perhost[main_host][fdname] = (fdpath, fdname)
                 elif os.path.isfile(fdpath) and fdname.lower().endswith(
                     (".py", ".pyc", ".pyd", "pyw")
@@ -1117,7 +1117,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     pkg_importables.add(realname)
                 toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
                 if not os.path.exists(toplevel_txt):
-                    impname_matched = canonical_dir_pattern.match(
+                    impname_matched = canonical_imp_pattern.match(
                         realname.replace("-", "_")
                     )
                     if not impname_matched:
@@ -1135,7 +1135,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                         toplevel_txt_lines = tt.readlines()
                     for line in toplevel_txt_lines:
                         prefix, suffix = os.path.split(line.rstrip())
-                        toplevel_imp_matched = canonical_dir_pattern.match(suffix)
+                        toplevel_imp_matched = canonical_imp_pattern.match(suffix)
                         if not toplevel_imp_matched:
                             continue
                         impname_in_toplevel = toplevel_imp_matched.group()
@@ -1171,7 +1171,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                 self.__cached_packages_imps[final_pkgname].add(canon_name)
         return self.__cached_packages_imps
 
-    def __check_refresh_required(self, fresh):
+    def __check_refresh_requirements(self, fresh):
         if fresh:
             self.__cached_packages_imps.clear()
         else:
@@ -1220,19 +1220,22 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return EMPTY_STR
         return os.path.join(self.env_path, PYTHON_SCR)
 
-    def names_for_import(self):
+    def names_for_import(self, fresh=False):
         """
         ### 获取本 Python 环境下的包/模块可用于 import 语句的名称列表。
 
         此方法返回的名称列表中可能有重复项，且不保证列表中所有的名称用于 import 语句时都可以成功导入。
 
         ```
+        :param fresh: bool, 控制是否刷新缓存再查询，如果为 False 则不主动刷新，如果缓存寿命(3s)超时或者没有缓存则会强制刷新。
+        当需要循环调用这个方法时，将这个参数设为 False 以加快查询速度。
+
         return: set[str...]，可用于 import 语句的名称集合。
         ```
         """
         if not self.env_path:
             return set()
-        self.__refresh_package_importable_mapping()
+        self.__check_refresh_requirements(fresh)
         pkg_import_names = set()
         for names in self.__cached_packages_imps.values():
             pkg_import_names.update(names)
@@ -1253,7 +1256,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
 
         :param case: bool, 是否对 module_or_pkg_name 大小写敏感。
 
-        :param fresh: bool, 是否刷新缓存再查询。当你需要循环调用 query_for_import 方法查询大量 module_or_pkg_name 时，将此参数置为 False 可以使用缓存以加快查询。
+        :param fresh: bool, 控制是否刷新缓存再查询，如果为 False 则不主动刷新，如果缓存寿命(3s)超时或者没有缓存则会强制刷新。
+        当你需要循环调用 query_for_import 方法查询大量 module_or_pkg_name 时，将此参数设为 False 可以使用缓存以加快查询速度。
 
         :return: list[str...], 该包、模块的用于 import 语句的名称列表。
         ```
@@ -1264,7 +1268,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return list()
         if not isinstance(module_or_pkg_name, str):
             raise TypeError("参数 name 数据类型错误，数据类型应为 'str'。")
-        self.__check_refresh_required(fresh)
+        self.__check_refresh_requirements(fresh)
         for publish_name, value in self.__cached_packages_imps.items():
             if case:
                 cased_value = publish_name
@@ -1290,7 +1294,8 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
 
         :param case: bool, 是否对 name_used_for_import 大小写敏感。
 
-        :param fresh: bool, 是否刷新缓存后查询。当你需要循环调用 query_for_install 方法查询大量 name_used_for_import 时，将此参数置为 False 可以使用缓存以加快查询。
+        :param fresh: bool, 控制是否刷新缓存后查询，如果为 False 则不主动刷新，如果缓存寿命(3s)超时或者没有缓存则会强制刷新。
+        当你需要循环调用 query_for_install 方法查询大量 name_used_for_import 时，将此参数设为 False 可以使用缓存以加快查询。
 
         :return: str, 包的名称，该名称一般用于安装，比如用于 pip 命令安装等。
         ```
@@ -1299,7 +1304,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return EMPTY_STR
         if not isinstance(name_used_for_import, str):
             raise TypeError("参数 name_used_for_import 类型错误，类型应为 'str'。")
-        self.__check_refresh_required(fresh)
+        self.__check_refresh_requirements(fresh)
         for publish_name, value in self.__cached_packages_imps.items():
             if case:
                 cased_value = value
@@ -1315,10 +1320,11 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         ### 获取本环境下包名与导入名的映射表
 
         ```
-        :param fresh: bool, 是否刷新缓存后查询，如果为 False，则超时或者没有缓存也会自动刷新
+        :param fresh: bool, 控制是否刷新缓存后查询，如果为 False 则不主动刷新，如果缓存寿命(3s)超时或者没有缓存则会强制刷新。
+        如果需要在极短时间内循环调用这个方法且没有刷新需求，则把 fresh 参数设为 False 可以加快查询速度。
 
         :return: dict[pkg_name: str, imp_names: set[str]], 包名与导入名映射表
         ```
         """
-        self.__check_refresh_required(fresh)
+        self.__check_refresh_requirements(fresh)
         return deepcopy(self.__cached_packages_imps)
