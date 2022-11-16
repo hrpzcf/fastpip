@@ -31,7 +31,7 @@ import re
 import shutil
 import time
 from collections import OrderedDict
-from copy import deepcopy
+from copy import copy, deepcopy
 from random import randint
 from subprocess import *
 from typing import Callable, Dict, List, Set, Tuple, Union
@@ -238,7 +238,7 @@ class PyEnv:
         PyEnv 类无参数实例化时或参数值为 None 实例化时，使用 cur_py_path 函数选取系统环境变量 PATH 中的首个 Python 目录路径，如果系统环境变量 PATH 中没有找到 Python 目录路径，则将路径属性 path 及 env_path 设置为空字符串。
         """
         self.__time_last_activity = time.time()
-        self.__cached_packages_imps: Dict[str, Set[str]] = dict()
+        self.__cached_packages_imps: Dict[str, Dict[str, str]] = dict()
         self.__cached_python_info = EMPTY_STR
         # 解释器是否在 Scripts 目录的标识
         self.__pyexe_in_scripts = False
@@ -1009,7 +1009,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             pass
         return package_paths_relative_site
 
-    def __refresh_package_importable_mapping(self) -> Dict[str, set]:
+    def __refresh_package_importable_mapping(self) -> Dict[str, Dict[str, str]]:
         """
         ### 获取本环境下包名与导入名的映射表并在 PyEnv 实例内缓存。
 
@@ -1022,7 +1022,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return dict()
         hosts_in_sys_paths, builtin_imps = self.__read_syspath_builtins()
         for name in builtin_imps:
-            self.__cached_packages_imps[name] = {name}
+            self.__cached_packages_imps[name] = {name: EMPTY_STR}
         info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-\.]+)$")
         module_pattern = re.compile(r"^([A-Z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
         canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
@@ -1111,10 +1111,13 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                         break
                 if not name_pkginfo_matched:
                     continue
-                pkg_importables: Set[str] = set()
+                pkg_importables: Dict[str, str] = dict()
                 realname = name_pkginfo_matched.group(1)
                 if PKG_SEPDOT in realname:
-                    pkg_importables.add(realname)
+                    imppath = os.path.join(
+                        pkgs_host, realname.replace(".", os.path.sep)
+                    )
+                    pkg_importables[realname] = imppath
                 toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
                 if not os.path.exists(toplevel_txt):
                     impname_matched = canonical_imp_pattern.match(
@@ -1125,10 +1128,11 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                     impname = impname_matched.group()
                     if impname not in pkgsmods_thishost:
                         continue
+                    pkgimppath = pkgsmods_thishost[impname]
                     if realname not in self.__cached_packages_imps:
-                        self.__cached_packages_imps[realname] = set()
-                    self.__cached_packages_imps[realname].add(impname)
-                    each_host_proced.add(pkgsmods_thishost[impname][1])
+                        self.__cached_packages_imps[realname] = dict()
+                    self.__cached_packages_imps[realname][impname] = pkgimppath[0]
+                    each_host_proced.add(pkgimppath[1])
                     continue
                 try:
                     with open(toplevel_txt, "rt", encoding="utf-8") as tt:
@@ -1141,12 +1145,13 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                         impname_in_toplevel = toplevel_imp_matched.group()
                         if impname_in_toplevel not in pkgsmods_thishost:
                             continue
-                        pkg_importables.add(impname_in_toplevel)
-                        each_host_proced.add(pkgsmods_thishost[impname_in_toplevel][1])
+                        pkgimppath = pkgsmods_thishost[impname_in_toplevel]
+                        pkg_importables[impname_in_toplevel] = pkgimppath[0]
+                        each_host_proced.add(pkgimppath[1])
                 except Exception:
                     pass
                 if realname not in self.__cached_packages_imps:
-                    self.__cached_packages_imps[realname] = set()
+                    self.__cached_packages_imps[realname] = dict()
                 self.__cached_packages_imps[realname].update(pkg_importables)
         for pkgs_host, fdnames_inhost in hosts_files_dirs.items():
             if pkgs_host in attributed_hosts:
@@ -1159,16 +1164,16 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                 if fdname in each_host_proced:
                     continue
                 flag_fdname_canonical = False
-                for canon_name, real in pkgsmods_thishost.items():
-                    if fdname == real[1]:
+                for canon_name, pathfile in pkgsmods_thishost.items():
+                    if fdname == pathfile[1]:
                         flag_fdname_canonical = True
                         break
                 if not flag_fdname_canonical:
                     continue
                 final_pkgname = pkgname if pkgname else canon_name
                 if final_pkgname not in self.__cached_packages_imps:
-                    self.__cached_packages_imps[final_pkgname] = set()
-                self.__cached_packages_imps[final_pkgname].add(canon_name)
+                    self.__cached_packages_imps[final_pkgname] = dict()
+                self.__cached_packages_imps[final_pkgname][canon_name] = pathfile[0]
         return self.__cached_packages_imps
 
     def __check_refresh_requirements(self, fresh):
@@ -1237,17 +1242,17 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
             return set()
         self.__check_refresh_requirements(fresh)
         pkg_import_names = set()
-        for names in self.__cached_packages_imps.values():
-            pkg_import_names.update(names)
+        for imppath in self.__cached_packages_imps.values():
+            pkg_import_names.update(imppath.keys())
         return pkg_import_names
 
     def query_for_import(self, module_or_pkg_name: str, *, case=True, fresh=False):
         """
         ### 通过包名称查询该包用于 import 语句的名称。
 
-        例如，pywin32 是一个 Windows API 包的名称，import 语句使用 win32api、win32con 等名称而非 import pywin32，
+        例如 Windows API 包 pywin32，import 语句使用 win32api、win32con 等名称而非 import pywin32，
 
-        此方法可以输入 pywin32 作为 module_or_pkg_name 参数，查询得到 ['win32api', 'win32con'...] 这样的结果。
+        此方法可以使用 'pywin32' 作为 module_or_pkg_name 参数，查询得到 ['win32api', 'win32con'...] 这样的结果。
 
         此方法不保证返回的名称列表中所有的名称用于 import 语句时都可以成功导入。
 
@@ -1259,7 +1264,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         :param fresh: bool, 控制是否刷新缓存再查询，如果为 False 则不主动刷新，如果缓存寿命(3s)超时或者没有缓存则会强制刷新。
         当你需要循环调用 query_for_import 方法查询大量 module_or_pkg_name 时，将此参数设为 False 可以使用缓存以加快查询速度。
 
-        :return: list[str...], 该包、模块的用于 import 语句的名称列表。
+        :return: List[str], 该包、模块的用于 import 语句的名称列表。
         ```
 
         包名非 str 则抛出 TypeError 异常。
@@ -1276,8 +1281,46 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                 cased_value = publish_name.lower()
                 module_or_pkg_name = module_or_pkg_name.lower()
             if module_or_pkg_name == cased_value:
-                return list(value)
+                return list(value.keys())
         return list()
+
+    def query_for_import_path(self, module_or_pkg_name: str, *, case=True, fresh=False):
+        """
+        ### 通过包名称查询该包用于 import 语句的名称和路径（文件或目录路径）字典。
+
+        例如 Windows API 包 pywin32，import 语句使用 win32api、win32con 等名称而非 import pywin32，
+
+        此方法可以使用 'pywin32' 作为 module_or_pkg_name 参数，查询得到 {'win32api': 路径, 'win32con': 路径...} 这样的结果。
+
+        此方法不保证返回的(名称, 路径)列字典中所有的名称用于 import 语句时都可以成功导入，不保证路径都存在。
+
+        ```
+        :param module_or_pkg_name: str, 想要查询的包名、模块名。
+
+        :param case: bool, 是否对 module_or_pkg_name 大小写敏感。
+
+        :param fresh: bool, 控制是否刷新缓存再查询，如果为 False 则不主动刷新，如果缓存寿命(3s)超时或者没有缓存则会强制刷新。
+        当你需要循环调用 query_for_import 方法查询大量 module_or_pkg_name 时，将此参数设为 False 可以使用缓存以加快查询速度。
+
+        :return: Dict[str, str], 该包、模块的用于 import 语句的(名称, 路径)字典。
+        ```
+
+        包名非 str 则抛出 TypeError 异常。
+        """
+        if not self.env_path:
+            return dict()
+        if not isinstance(module_or_pkg_name, str):
+            raise TypeError("参数 name 数据类型错误，数据类型应为 'str'。")
+        self.__check_refresh_requirements(fresh)
+        for publish_name, value in self.__cached_packages_imps.items():
+            if case:
+                cased_value = publish_name
+            else:
+                cased_value = publish_name.lower()
+                module_or_pkg_name = module_or_pkg_name.lower()
+            if module_or_pkg_name == cased_value:
+                return value.copy()
+        return dict()
 
     def query_for_install(self, name_used_for_import, *, case=True, fresh=False):
         """
@@ -1310,7 +1353,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
                 cased_value = value
             else:
                 name_used_for_import = name_used_for_import.lower()
-                cased_value = {i.lower() for i in value}
+                cased_value = {i.lower() for i in value.keys()}
             if name_used_for_import in cased_value:
                 return publish_name
         return EMPTY_STR
