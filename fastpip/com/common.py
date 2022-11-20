@@ -1,6 +1,7 @@
 # coding: utf-8
 
 __all__ = [
+    "DEFAULT_REQNAME",
     "PKG_SEPDOT",
     "VENV_CFG",
     "PYTHON_SCR",
@@ -16,6 +17,7 @@ __all__ = [
 ]
 
 
+DEFAULT_REQNAME = "requirements.txt"  # 导出环境已安装的包信息时的默认文件名
 PKG_SEPDOT = "."  # 导入语句所使用的导入路径分隔符
 VENV_CFG = "pyvenv.cfg"  # venv 创建的虚拟环境的配置文件
 PYTHON_SCR = "Scripts"  # WIN 平台上 Python 的 Scripts 目录

@@ -31,18 +31,18 @@ import re
 import shutil
 import time
 from collections import OrderedDict
-from copy import copy, deepcopy
+from copy import deepcopy
 from random import randint
 from subprocess import *
-from typing import Callable, Dict, List, Set, Tuple, Union
+from typing import *
+
+if os.name != "nt":
+    raise Exception("此模块不支持 Windows 以外的操作系统")
 
 from ..__version__ import VERSION
 from ..com.common import *  # 一些常用量
 from ..utils.cmdutil import Command
 from ..utils.findpath import cur_py_path
-
-if os.name != "nt":
-    raise Exception("此模块不支持您当前正在使用的操作系统。")
 
 _INIT_WK_DIR = os.getcwd()
 _STARTUP = STARTUPINFO()
@@ -66,6 +66,7 @@ index_urls = {
 # 预置部分 pip 命令字符串元组格式
 _PREFIX = ("-m", "pip")
 _PIPCMDS = {
+    "FREEZE": (*_PREFIX, "freeze"),
     "ENSUREPIP": ("-m", "ensurepip"),
     "INSTALL": (*_PREFIX, "install"),
     "UNINSTALL": (*_PREFIX, "uninstall", "-y"),
@@ -189,7 +190,9 @@ class PyEnv:
     USER_DOWNLOADS = os.path.join(_HOME or _INIT_WK_DIR, "Downloads")
     FILE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    def __execute(self, cmds: Command, output, timeout):
+    def __execute(
+        self, cmds: Command, output: bool, timeout: Union[int, float, None]
+    ) -> Tuple[str, int]:
         env = cmds.environment()
         cwd = os.path.dirname(cmds.executable)
         process = Popen(
@@ -1378,3 +1381,72 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         """
         self.__check_refresh_requirements(fresh)
         return deepcopy(self.__cached_packages_imps)
+
+    @staticmethod
+    def __clear_freezed_info(string: str):
+        if not string:
+            return string
+        clean_lines = list()
+        for line in string.splitlines():
+            if "@" not in line:
+                clean_lines.append(line)
+                continue
+            line_matched = re.match(r"^.+(?= @ file:)", line)
+            if not line_matched:
+                continue
+            clean_lines.append(line_matched.group())
+        return "\n".join(clean_lines)
+
+    def freeze(
+        self,
+        dir_path: str,
+        file_name: str = None,
+        no_path: bool = False,
+        user: bool = False,
+        all_pkg: bool = False,
+    ):
+        """
+        ### 导出已安装的包信息到指定目录或文件
+
+        注意：已存在的同名文件会被直接覆盖
+
+        ```
+        :param dir_path: str, 已安装的包信息文本文件要保存的目录路径
+        :param file_name: str or None，要保存的文件名，默认 None
+        :param no_path: bool, 是否过滤掉包信息中的路径信息（从本地文件安装的包，导出的信息中会带有安装时安装包的文件路径：'@ file:///...' ）
+        :param user: bool, 是否只导出安装在用户目录中的包信息，默认 False
+        :param all_pkg: bool, 不跳过这些包的信息：pip, setuptools, distribute, wheel，默认 False
+        :return: bool, 本方法的执行结果，成功返回 True，失败返回 False
+        ```
+        """
+        if not self.pip_ready:
+            return False
+        if not isinstance(dir_path, str):
+            raise TypeError("参数 1 必须是 str 类型")
+        if file_name is None:
+            file_name = DEFAULT_REQNAME
+        if not isinstance(file_name, str):
+            raise TypeError("参数 2 必须是 None 或 str 类型")
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        elif not os.path.isdir(dir_path):
+            raise ValueError("参数 1 不是一个文件夹路径")
+        file_fullpath = os.path.join(
+            os.path.normcase(dir_path), file_name or DEFAULT_REQNAME
+        )
+        command = Command(self.interpreter, *_PIPCMDS["FREEZE"])
+        if all_pkg:
+            command.append("--all")
+        if user:
+            command.append("--user")
+        string, result = self.__execute(command, False, None)
+        if result:
+            return False
+        if no_path:
+            string = self.__clear_freezed_info(string)
+        try:
+            with open(file_fullpath, "wt", encoding="utf-8") as rfo:
+                rfo.write(string)
+            return True
+        except Exception:
+            return False
