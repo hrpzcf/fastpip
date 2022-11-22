@@ -261,11 +261,11 @@ class PyEnv:
         raise TypeError("路径参数类型错误。")
 
     @classmethod
-    def register(cls, output_callback):
+    def register(cls, output_callback: Callable[[str], Any]):
         """
         ### 向 PyEnv 类注册回调函数，可多次调用以注册不同函数。
 
-        ```python
+        ```
         :param output_callback: Callable, 回调函数，此函数必须可以接受一个字符串参数。
         :return: str or None, 如果注册成功，此方法返回回调函数在 PyEnv 类中的标识符，用于 deregister 方法，注册失败返回 None。
         ```
@@ -280,11 +280,11 @@ class PyEnv:
         return handle
 
     @classmethod
-    def deregister(cls, handle):
+    def deregister(cls, handle: str):
         """
         ### 向 PyEnv 类反注册已经使用 register 注册过的回调函数。
 
-        ```python
+        ```
         :param handle: str, register 方法的返回值。
         :return: bool, 反注册成功返回 True，失败返回 False。
         ```
@@ -746,7 +746,7 @@ class PyEnv:
             kwargs.get("user", False),
             kwargs.get("compile", "auto"),
             kwargs.get("strategy", None),
-            kwargs.get("force_reinstall", False)
+            kwargs.get("force_reinstall", False),
         )
         if not all(isinstance(s, str) for s in names):
             raise TypeError("包名参数的数据类型应为字符串。")
