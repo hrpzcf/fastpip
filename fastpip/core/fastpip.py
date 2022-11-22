@@ -702,6 +702,8 @@ class PyEnv:
 
         :param upgrade: bool, 是否以升级模式安装。如果之前已安装该包，则升级模式会卸载旧版本安装新版本，反之会跳过安装，不安装新版本。
 
+        :param force_reinstall: bool, 是否强制重装该包（包括强制重装该包的所有依赖）
+
         :param pre: bool, 查找目标是否包括预发行版和开发版，默认 False，即仅查找稳定版。
 
         :param user: bool, 是否安装到您平台的 Python 用户安装目录，通常是 '~/.local/' 或 '％APPDATA％Python'，默认 False。
@@ -734,6 +736,7 @@ class PyEnv:
             install_user,
             compile_sc,
             upgrade_strategy,
+            force_reinstall,
         ) = (
             kwargs.get("pre", False),
             kwargs.get("index_url", EMPTY_STR),
@@ -743,6 +746,7 @@ class PyEnv:
             kwargs.get("user", False),
             kwargs.get("compile", "auto"),
             kwargs.get("strategy", None),
+            kwargs.get("force_reinstall", False)
         )
         if not all(isinstance(s, str) for s in names):
             raise TypeError("包名参数的数据类型应为字符串。")
@@ -762,6 +766,8 @@ class PyEnv:
             cmds.append("--user")
         if upgrade_strategy:
             cmds.extend(("--upgrade-strategy", upgrade_strategy))
+        if force_reinstall:
+            cmds.append("--force-reinstall")
         if compile_sc == "auto":
             pass
         elif compile_sc:
