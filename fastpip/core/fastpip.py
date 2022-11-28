@@ -255,6 +255,8 @@ class PyEnv:
         `如果路径参数不是字符串，则抛出 TypeError 异常。`
         """
         if isinstance(_path, str):
+            if not _path:
+                return _path
             return os.path.normpath(_path)
         if _path is None:
             return cur_py_path()
@@ -311,13 +313,18 @@ class PyEnv:
 
         赋值类型非 str 则抛出 TypeError 异常。
         """
+        if not self.__designated_path:
+            return self.__designated_path
         return os.path.abspath(self.__designated_path)
 
     @path.setter
     def path(self, _path):
         if not isinstance(_path, str):
             raise TypeError("路径参数类型错误。")
-        self.__designated_path = os.path.normpath(_path)
+        if not _path:
+            self.__designated_path = _path
+        else:
+            self.__designated_path = os.path.normpath(_path)
         self.__cached_python_info = EMPTY_STR
 
     def __check(self, _path):
