@@ -244,7 +244,7 @@ class PyEnv:
         self.__cached_packages_imps: Dict[str, Dict[str, str]] = dict()
         self.__cached_python_info = EMPTY_STR
         # 解释器是否在 Scripts 目录的标识
-        self.__pyexe_in_scripts = False
+        self.__pyexe_is_in_scripts = False
         self.__designated_path = self.__init_path(path)
 
     @staticmethod
@@ -329,6 +329,9 @@ class PyEnv:
 
     def __check(self, _path):
         """### 检查参数 path 在当前是否是一个有效的 Python 目录路径。"""
+        # 此属性需要实时更新
+        # 因为有可能原实例是 venv环境，后来通过对 path 属性赋值变为常规环境
+        self.__pyexe_is_in_scripts = False
         _path = os.path.abspath(_path)
         # 传入的目录内没有 python.exe 可执行文件则进入此分支
         if not os.path.isfile(os.path.join(_path, PYTHON_EXE)):
@@ -336,7 +339,7 @@ class PyEnv:
             if os.path.isfile(os.path.join(_path, VENV_CFG)) and os.path.isfile(
                 os.path.join(_path, PYTHON_SCR, PYTHON_EXE)
             ):
-                self.__pyexe_in_scripts = True
+                self.__pyexe_is_in_scripts = True
                 return os.path.normpath(_path)  # 如是则规范化路径后返回
             return EMPTY_STR  # 如非则路径是无效的，返回空字符串
         # 传入的目录路径内有 python.exe 则进入此分支
@@ -346,9 +349,9 @@ class PyEnv:
             if scripts.lower() == PYTHON_SCR.lower() and os.path.isfile(
                 os.path.join(parent, VENV_CFG)
             ):
-                self.__pyexe_in_scripts = True
+                self.__pyexe_is_in_scripts = True
                 return os.path.normpath(parent)  # 如是则返回 Scripts 上级
-        return os.path.normpath(_path)  # 如非则可断定非特殊 Python 环境（？）
+        return os.path.normpath(_path)  # 如非则断定是常规目录结构的 Python 环境
 
     @property
     def env_path(self):
@@ -369,7 +372,7 @@ class PyEnv:
         env_path = self.env_path
         if not env_path:
             return EMPTY_STR
-        if self.__pyexe_in_scripts:
+        if self.__pyexe_is_in_scripts:
             return os.path.join(env_path, PYTHON_SCR, PYTHON_EXE)
         return os.path.join(env_path, PYTHON_EXE)
 
