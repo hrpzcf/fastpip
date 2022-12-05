@@ -234,10 +234,10 @@ class PyEnv:
         ### PyEnv 类初始化方法。
 
         ```
-        :param path: str or None, 一个指向 Python 解释器所在目录的路径，如果是 venv 创建的虚拟环境，该路径即可以是前者，也可以是 Scripts 目录的父目录。
+        :param path: str or None, 一个指向 Python 解释器所在目录的路径。对于 venv 创建的虚拟环境，因 python.exe 在 Scrpits 目录内，所以该路径参数即可以是 Scripts 目录路径也可以是 Scripts 目录的父目录路径。
         ```
 
-        PyEnv 类有参数实例化时，如果参数 path 数据类型不是"str"或"None"则抛出 TypeError 异常。
+        PyEnv 类有参数实例化时，如果参数 path 数据类型既不是 str 也不是 None 则抛出 TypeError 异常。如果参数是空字符串，则代表实例化一个空 PyEnv 实例，稍后可通过对 path 属性赋值使实例具体化。
 
         PyEnv 类无参数实例化时或参数值为 None 实例化时，使用 cur_py_path 函数选取系统环境变量 PATH 中的首个 Python 目录路径，如果系统环境变量 PATH 中没有找到 Python 目录路径，则将路径属性 path 及 env_path 设置为空字符串。
         """
