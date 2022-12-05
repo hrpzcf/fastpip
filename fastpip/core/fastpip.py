@@ -1443,3 +1443,29 @@ class PyEnv:
             return True
         except Exception:
             return False
+
+    def site_packages_home(self) -> str:
+        """### 返回全局第三方包安装目录的完整路径"""
+        if not self.pip_ready:
+            return EMPTY_STR
+        command = Command(self.interpreter, *CmdRead.SITES.value)
+        string, result = self.__execute(command, False, None)
+        if result:
+            return EMPTY_STR
+        site_list: List[str] = eval(string)
+        if not string or not isinstance(site_list, list):
+            return EMPTY_STR
+        for site_string in site_list:
+            if site_string.lower().endswith(SITEPKG_NAME.lower()):
+                return site_string
+        return EMPTY_STR
+
+    def user_site_packages_home(self) -> str:
+        """### 返回用户侧第三方包安装目录的完整路径"""
+        if not self.pip_ready:
+            return EMPTY_STR
+        command = Command(self.interpreter, *CmdRead.USERSITE.value)
+        string, result = self.__execute(command, False, None)
+        if result:
+            return EMPTY_STR
+        return string

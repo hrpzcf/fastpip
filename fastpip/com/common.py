@@ -4,22 +4,25 @@ from enum import Enum
 
 __all__ = [
     "CmdRead",
+    "CONDA_ENVS",
     "DEFAULT_REQNAME",
+    "EMPTY_STR",
+    "LIB_DIR_NAME",
+    "M_CONDA_EXE",
     "PKG_SEPDOT",
-    "VENV_CFG",
     "PYTHON_SCR",
     "PYTHON_EXE",
     "PIP_INIT",
     "PIP_EXE",
-    "EMPTY_STR",
-    "UNKNOWN_LOCATION",
     "PYENV_SEP_STR",
-    "CONDA_ENVS",
     "P_CONDA_EXE",
-    "M_CONDA_EXE",
+    "SITEPKG_NAME",
+    "UNKNOWN_LOCATION",
+    "VENV_CFG",
 ]
 
-
+LIB_DIR_NAME = "Lib"  # site-packages 所在目录名称（Windows 系统）
+SITEPKG_NAME = "site-packages"  # 安装第三包目的文件夹名称
 DEFAULT_REQNAME = "requirements.txt"  # 导出环境已安装的包信息时的默认文件名
 PKG_SEPDOT = "."  # 导入语句所使用的导入路径分隔符
 VENV_CFG = "pyvenv.cfg"  # venv 创建的虚拟环境的配置文件
