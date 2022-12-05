@@ -1,6 +1,9 @@
 # coding: utf-8
 
+from enum import Enum
+
 __all__ = [
+    "CmdRead",
     "DEFAULT_REQNAME",
     "PKG_SEPDOT",
     "VENV_CFG",
@@ -30,3 +33,26 @@ PYENV_SEP_STR = "@"  # PyEnv 类实例的字符串形式中 Python 版本号与�
 CONDA_ENVS = "envs"  # Anaconda 的虚拟环境目录名
 P_CONDA_EXE = "_conda.exe"  # conda 的可执行文件名
 M_CONDA_EXE = "conda.exe"  # conda 的可执行文件名
+
+
+class CmdRead(Enum):
+    # 读取目标 Python 解释器的版本信息
+    PYVERS = (
+        "-c",
+        "import sys;print(sys.version)",
+    )
+    # 读取 sys.path 和 builtin_module_names 信息
+    SYSINFO = (
+        "-c",
+        "import sys;print(sys.path[1:]);print(sys.builtin_module_names)",
+    )
+    # 读取目标 Python 环境的 site-packaes 路径
+    SITES = (
+        "-c",
+        "import site;print(site.getsitepackages())",
+    )
+    # 读取目标 Python 环境的用户 site-packaes 路径
+    USERSITE = (
+        "-c",
+        "import site;print(site.getusersitepackages())",
+    )

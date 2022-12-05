@@ -189,6 +189,7 @@ class PyEnv:
     )
     USER_DOWNLOADS = os.path.join(_HOME or _INIT_WK_DIR, "Downloads")
     FILE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    string_pyinfo = "Python {} :: {} bit"
 
     def __execute(
         self, cmds: Command, output: bool, timeout: Union[int, float, None]
@@ -426,30 +427,18 @@ class PyEnv:
         self.cleanup_old_scripts()
         if self.__cached_python_info:
             return self.__cached_python_info
-        py_info = "Python {} :: {} bit"
         if not self.env_path:
-            return py_info.format("0.0.0", "?")
-        source_code = "import sys;print(sys.version)"
-        _path = os.path.join(self.FILE_DIR, f"ReadPyVER.{VERSION}")
-        if not os.path.isfile(_path):
-            if not os.path.exists(self.FILE_DIR):
-                try:
-                    os.makedirs(self.FILE_DIR)
-                except Exception:
-                    return py_info.format("0.0.0", "?")
-            try:
-                with open(_path, "wt", encoding="utf-8") as py_file:
-                    py_file.write(source_code)
-            except Exception:
-                return py_info.format("0.0.0", "?")
-        result, retcode = self.__execute(Command(self.interpreter, _path), False, None)
+            return self.string_pyinfo.format("0.0.0", "?")
+        result, retcode = self.__execute(
+            Command(self.interpreter, *CmdRead.PYVERS.value), False, None
+        )
         if retcode or not result:
-            return py_info.format("0.0.0", "?")
-        # e.g., '3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]' etc.
+            return self.string_pyinfo.format("0.0.0", "?")
+        # '3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]' etc.
         m_obj = re.match(r"(\d+\.\d+\.\d+)\+? [(|].+(32|64) bit \(.+\)", result, re.S)
         if not m_obj:
-            return py_info.format("0.0.0", "?")
-        self.__cached_python_info = py_info.format(*m_obj.groups())
+            return self.string_pyinfo.format("0.0.0", "?")
+        self.__cached_python_info = self.string_pyinfo.format(*m_obj.groups())
         return self.__cached_python_info
 
     def pip_path(self):
@@ -985,24 +974,12 @@ class PyEnv:
         retcode = not self.__execute(cmds, output, timeout)[1]
         return (retcode, dest) if retcode else (retcode, EMPTY_STR)
 
-    def __read_syspath_builtins(self) -> Tuple[List[str], Tuple[str]]:
+    def __read_sysinfo(self) -> Tuple[List[str], Tuple[str]]:
         """读取目标环境的 sys.path 和 sys.builtin_module_names 属性。"""
         self.cleanup_old_scripts()
-        source_code = """import sys
-print(sys.path[1:], "\\n", sys.builtin_module_names)"""
-        _path = os.path.join(self.FILE_DIR, f"ReadSYSPB.{VERSION}")
-        if not os.path.isfile(_path):
-            if not os.path.exists(self.FILE_DIR):
-                try:
-                    os.makedirs(self.FILE_DIR)
-                except Exception:
-                    return [], ()
-            try:
-                with open(_path, "wt", encoding="utf-8") as py_file:
-                    py_file.write(source_code)
-            except Exception:
-                return [], ()
-        result, retcode = self.__execute(Command(self.interpreter, _path), False, None)
+        result, retcode = self.__execute(
+            Command(self.interpreter, *CmdRead.SYSINFO.value), False, None
+        )
         if retcode or not result:
             return [], ()
         try:
@@ -1039,7 +1016,7 @@ print(sys.path[1:], "\\n", sys.builtin_module_names)"""
         self.__cached_packages_imps.clear()
         if not self.env_path:
             return dict()
-        hosts_in_sys_paths, builtin_imps = self.__read_syspath_builtins()
+        hosts_in_sys_paths, builtin_imps = self.__read_sysinfo()
         for name in builtin_imps:
             self.__cached_packages_imps[name] = {name: EMPTY_STR}
         info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-\.]+)$")
