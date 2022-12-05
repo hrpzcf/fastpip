@@ -364,6 +364,11 @@ class PyEnv:
         return self.__check(self.__designated_path)
 
     @property
+    def env_is_valid(self):
+        """### 返回代表环境是否有效的布尔值"""
+        return bool(self.__check(self.__designated_path))
+
+    @property
     def interpreter(self):
         """
         ### 属性值为 Python 解释器(python.exe)路径。
@@ -1218,15 +1223,21 @@ class PyEnv:
                 pass
         return bool_result
 
-    def scripts_path(self):
+    def scripts_home(self):
         """
-        ### 返回 Python 环境的 Scripts 目录的路径。
-
-        如果 Python 环境无效，则返回空字符串。
-        #"""
+        ### 返回 Python 环境的 Scripts 目录的路径，如果 Python 环境无效，则返回空字符串。
+        此方法与 scripts_path 方法一模一样。
+        """
         if not self.env_path:
             return EMPTY_STR
         return os.path.join(self.env_path, PYTHON_SCR)
+
+    def scripts_path(self):
+        """
+        ### 返回 Python 环境的 Scripts 目录的路径，如果 Python 环境无效，则返回空字符串。
+        此方法与 scripts_home 方法一模一样。
+        """
+        return self.scripts_home()
 
     def names_for_import(self, fresh=False):
         """
@@ -1446,7 +1457,7 @@ class PyEnv:
 
     def site_packages_home(self) -> str:
         """### 返回全局第三方包安装目录的完整路径"""
-        if not self.pip_ready:
+        if not self.env_is_valid:
             return EMPTY_STR
         command = Command(self.interpreter, *CmdRead.SITES.value)
         string, result = self.__execute(command, False, None)
@@ -1462,10 +1473,10 @@ class PyEnv:
 
     def user_site_packages_home(self) -> str:
         """### 返回用户侧第三方包安装目录的完整路径"""
-        if not self.pip_ready:
+        if not self.env_is_valid:
             return EMPTY_STR
         command = Command(self.interpreter, *CmdRead.USERSITE.value)
         string, result = self.__execute(command, False, None)
         if result:
             return EMPTY_STR
-        return string
+        return string.strip()
