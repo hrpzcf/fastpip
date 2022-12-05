@@ -24,20 +24,19 @@ SOFTWARE."""
 
 __all__ = [
     "AUTHOR",
+    "all_py_paths",
     "Command",
+    "cur_py_path",
+    "execute_commands",
     "LICENSE",
     "NAME",
     "PipInformation",
     "PyEnv",
+    "parse_package_names",
     "VERNUM",
     "VERSION",
-    "VERSION",
     "WEBSITE",
-    "all_py_paths",
-    "cur_py_path",
-    "execute_commands",
     "index_urls",
-    "parse_package_names",
 ]
 
 from .__version__ import *
