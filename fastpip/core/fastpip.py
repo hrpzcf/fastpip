@@ -387,16 +387,30 @@ class PyEnv:
         return "{} {} {}".format(self.py_info(), PYENV_SEP_STR, location)
 
     @property
+    def pip_is_ready(self):
+        """
+        ### 代表该 Python 环境中 pip 是否已安装的属性。
+
+        值为 True 代表 pip 已安装，False 代表未安装，获取属性值时实时检查是否已安装。
+
+        作用和结果与 pip_ready 属性完全一致。
+        """
+        if not self.env_is_valid:
+            return False
+        return os.path.isfile(
+            os.path.join(self.site_packages_home(), PIP_INIT)
+        ) or os.path.isfile(os.path.join(self.user_site_packages_home(), PIP_INIT))
+
+    @property
     def pip_ready(self):
         """
         ### 代表该 Python 环境中 pip 是否已安装的属性。
 
         值为 True 代表 pip 已安装，False 代表未安装，获取属性值时实时检查是否已安装。
+
+        作用和结果与 pip_is_ready 属性完全一致。
         """
-        env_path = self.env_path
-        if not env_path:
-            return False
-        return os.path.isfile(os.path.join(env_path, PIP_INIT))
+        return self.pip_is_ready
 
     @staticmethod
     def __check_timeout_num(timeout):
@@ -461,7 +475,7 @@ class PyEnv:
         env_path = self.env_path
         if not env_path:
             return EMPTY_STR
-        dir_pip_exists = os.path.join(env_path, "Scripts")
+        dir_pip_exists = os.path.join(env_path, PYTHON_SCR)
         try:
             dirs_and_files = os.listdir(dir_pip_exists)
         except Exception:
