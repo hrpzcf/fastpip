@@ -3,7 +3,7 @@
 __all__ = ["NAME", "AUTHOR", "WEBSITE", "VERSION", "VERNUM"]
 
 NAME = "fastpip"
-VERNUM = 1, 4, 1
+VERNUM = 1, 5, 0
 AUTHOR = "hrpzcf"
 WEBSITE = "https://github.com/hrpzcf/fastpip"
 VERSION = ".".join(map(str, VERNUM))
