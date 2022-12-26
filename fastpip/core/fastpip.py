@@ -189,9 +189,13 @@ class PyEnv:
     )
     USER_DOWNLOADS = os.path.join(_HOME or _INIT_WK_DIR, "Downloads")
     FILE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    string_pyinfo = "Python {} :: {} bit"
-    sitepkg_pattern = re.compile(r"\[.*\]", re.S)
-    pyinfo_pattern = re.compile(r"(\d+\.\d+\.\d+)\+? [(|].+(32|64) bit \(.+\)", re.S)
+    __string_pyinfo = "Python {} :: {} bit"
+    __sitepkg_pattern = re.compile(r"\[.*\]", re.S)
+    __pyinfo_pattern = re.compile(r"(\d+\.\d+\.\d+)\+? [(|].+(32|64) bit \(.+\)")
+    __info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-\.]+)$")
+    __canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
+    __full_canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
+    __module_pattern = re.compile(r"^([A-Z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
 
     def __execute(
         self, cmds: Command, output: bool, timeout: Union[int, float, None]
@@ -449,17 +453,17 @@ class PyEnv:
         if self.__cached_python_info:
             return self.__cached_python_info
         if not self.env_path:
-            return self.string_pyinfo.format("0.0.0", "?")
+            return self.__string_pyinfo.format("0.0.0", "?")
         result, retcode = self.__execute(
             Command(self.interpreter, *CmdRead.PYVERS.value), False, None
         )
         if retcode or not result:
-            return self.string_pyinfo.format("0.0.0", "?")
+            return self.__string_pyinfo.format("0.0.0", "?")
         # '3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]' etc.
-        m_obj = self.pyinfo_pattern.search(result)
+        m_obj = self.__pyinfo_pattern.search(result)
         if not m_obj:
-            return self.string_pyinfo.format("0.0.0", "?")
-        self.__cached_python_info = self.string_pyinfo.format(*m_obj.groups())
+            return self.__string_pyinfo.format("0.0.0", "?")
+        self.__cached_python_info = self.__string_pyinfo.format(*m_obj.groups())
         return self.__cached_python_info
 
     def pip_path(self):
@@ -1040,10 +1044,6 @@ class PyEnv:
         hosts_in_sys_paths, builtin_imps = self.__read_sysinfo()
         for name in builtin_imps:
             self.__cached_packages_imps[name] = {name: EMPTY_STR}
-        info_pkgname_pattern = re.compile(r"^Name: ([A-Za-z0-9_\-\.]+)$")
-        module_pattern = re.compile(r"^([A-Z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
-        canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+")
-        full_canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
         hosts_files_dirs: Dict[str, Set[str]] = dict()
         # {pth_host: (owner_host, owner_pkg)}
         attributed_hosts: Dict[str, Tuple[str, str]] = dict()
@@ -1064,7 +1064,7 @@ class PyEnv:
                     each_pth_prefs = self.__prefixs_from_pth(fdpath)
                     if not each_pth_prefs:
                         continue
-                    pthname_matched = canonical_imp_pattern.match(fdname)
+                    pthname_matched = self.__canonical_imp_pattern.match(fdname)
                     if not pthname_matched:
                         continue
                     owner_pkg = pthname_matched.group()
@@ -1084,12 +1084,12 @@ class PyEnv:
             for fdname in fdnames_inhost:
                 fdpath = os.path.join(pkgs_host, fdname)
                 if os.path.isdir(fdpath):
-                    if full_canonical_imp_pattern.match(fdname):
+                    if self.__full_canonical_imp_pattern.match(fdname):
                         pkgsmods_perhost[main_host][fdname] = (fdpath, fdname)
                 elif os.path.isfile(fdpath) and fdname.lower().endswith(
                     (".py", ".pyc", ".pyd", "pyw")
                 ):
-                    module_matched = module_pattern.match(fdname)
+                    module_matched = self.__module_pattern.match(fdname)
                     if not module_matched:
                         continue
                     module_name = module_matched.group(1)
@@ -1123,7 +1123,7 @@ class PyEnv:
                     continue
                 name_pkginfo_matched = EMPTY_STR
                 for line in metadata_lines[1:]:
-                    name_pkginfo_matched = info_pkgname_pattern.match(line)
+                    name_pkginfo_matched = self.__info_pkgname_pattern.match(line)
                     if name_pkginfo_matched:
                         break
                 if not name_pkginfo_matched:
@@ -1137,7 +1137,7 @@ class PyEnv:
                     pkg_importables[realname] = imppath
                 toplevel_txt = os.path.join(dir_fullpath, "top_level.txt")
                 if not os.path.exists(toplevel_txt):
-                    impname_matched = canonical_imp_pattern.match(
+                    impname_matched = self.__canonical_imp_pattern.match(
                         realname.replace("-", "_")
                     )
                     if not impname_matched:
@@ -1156,7 +1156,9 @@ class PyEnv:
                         toplevel_txt_lines = tt.readlines()
                     for line in toplevel_txt_lines:
                         prefix, suffix = os.path.split(line.rstrip())
-                        toplevel_imp_matched = canonical_imp_pattern.match(suffix)
+                        toplevel_imp_matched = self.__canonical_imp_pattern.match(
+                            suffix
+                        )
                         if not toplevel_imp_matched:
                             continue
                         impname_in_toplevel = toplevel_imp_matched.group()
@@ -1479,7 +1481,7 @@ class PyEnv:
         string, result = self.__execute(command, False, None)
         if not string or result:
             return EMPTY_STR
-        str_matched = self.sitepkg_pattern.search(string)
+        str_matched = self.__sitepkg_pattern.search(string)
         if str_matched is None:
             return EMPTY_STR
         site_list: List[str] = eval(str_matched.group())
