@@ -190,6 +190,8 @@ class PyEnv:
     USER_DOWNLOADS = os.path.join(_HOME or _INIT_WK_DIR, "Downloads")
     FILE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     string_pyinfo = "Python {} :: {} bit"
+    sitepkg_pattern = re.compile(r"\[.*\]", re.S)
+    pyinfo_pattern = re.compile(r"(\d+\.\d+\.\d+)\+? [(|].+(32|64) bit \(.+\)", re.S)
 
     def __execute(
         self, cmds: Command, output: bool, timeout: Union[int, float, None]
@@ -454,7 +456,7 @@ class PyEnv:
         if retcode or not result:
             return self.string_pyinfo.format("0.0.0", "?")
         # '3.7.14+ (heads/3.7:xxx...) [MSC v.1900 32 bit (Intel)]' etc.
-        m_obj = re.match(r"(\d+\.\d+\.\d+)\+? [(|].+(32|64) bit \(.+\)", result, re.S)
+        m_obj = self.pyinfo_pattern.search(result)
         if not m_obj:
             return self.string_pyinfo.format("0.0.0", "?")
         self.__cached_python_info = self.string_pyinfo.format(*m_obj.groups())
@@ -1475,10 +1477,13 @@ class PyEnv:
             return EMPTY_STR
         command = Command(self.interpreter, *CmdRead.SITES.value)
         string, result = self.__execute(command, False, None)
-        if result:
+        if not string or result:
             return EMPTY_STR
-        site_list: List[str] = eval(string)
-        if not string or not isinstance(site_list, list):
+        str_matched = self.sitepkg_pattern.search(string)
+        if str_matched is None:
+            return EMPTY_STR
+        site_list: List[str] = eval(str_matched.group())
+        if not isinstance(site_list, list):
             return EMPTY_STR
         for site_string in site_list:
             if site_string.lower().endswith(SITEPKG_NAME.lower()):
