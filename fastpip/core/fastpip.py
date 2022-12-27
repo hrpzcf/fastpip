@@ -140,7 +140,7 @@ def execute_commands(
             try:
                 line = process.stdout.readline()
             except UnicodeDecodeError as e:
-                line = f"[fastpip] {e.reason}\n"
+                line = f"fastpip: {e.reason}\n"
             if line:
                 strings.append(line)
                 if output:
@@ -224,7 +224,7 @@ class PyEnv:
                 try:
                     line = process.stdout.readline()
                 except UnicodeDecodeError as e:
-                    line = f"[fastpip] {e.reason}\n"
+                    line = f"fastpip: {e.reason}\n"
                 if line:
                     strings.append(line)
                     if output:
