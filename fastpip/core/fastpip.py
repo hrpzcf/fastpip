@@ -129,7 +129,6 @@ def execute_commands(
         cmds,
         stdout=PIPE,
         stderr=STDOUT,
-        text=True,
         startupinfo=_STARTUP,
         cwd=cwd,
         env=env,
@@ -137,23 +136,22 @@ def execute_commands(
     if output:
         strings = list()
         while process.poll() is None:
-            try:
-                line = process.stdout.readline()
-            except UnicodeDecodeError as exc:
-                line = f"fastpip: {exc.reason}\n"
-            if line:
-                strings.append(line)
+            line_bytes = process.stdout.readline()
+            decoded_line = decode_bytes(line_bytes)
+            if decoded_line:
+                strings.append(decoded_line)
                 if output:
-                    print(line, end="")
+                    print(decoded_line, end="")
         out_strings = "".join(strings)
         return_code = process.returncode
     else:
         try:
-            out_strings, _ = process.communicate(None, timeout)
+            out_bytes, _ = process.communicate(None, timeout)
             return_code = process.returncode
+            out_strings = decode_bytes(out_bytes)
         except:
             return_code = 1
-            out_strings = ""
+            out_strings = EMPTY_STR
     return out_strings, return_code
 
 
@@ -197,40 +195,36 @@ class PyEnv:
     __full_canonical_imp_pattern = re.compile(r"^[A-Za-z_]?[A-Za-z0-9_]+$")
     __module_pattern = re.compile(r"^([A-Z0-9_]+).*(?<!_d)\.py[cdw]?$", re.I)
 
-    def __execute(
-        self, cmds: Command, output: bool, timeout: Union[int, float, None]
-    ) -> Tuple[str, int]:
+    def __execute(self, cmds: Command, output, timeout):
         env = cmds.environment()
         cwd = os.path.dirname(cmds.executable)
         process = Popen(
             cmds,
             stdout=PIPE,
             stderr=STDOUT,
-            text=True,
             startupinfo=_STARTUP,
             cwd=cwd,
             env=env,
         )
         if not output and not self.__CLS_CALLBACK_DICT:
             try:
-                out_strings, _ = process.communicate(None, timeout)
+                out_bytes, _ = process.communicate(None, timeout)
                 return_code = process.returncode
+                out_strings = decode_bytes(out_bytes)
             except:
                 return_code = 1
-                out_strings = ""
+                out_strings = EMPTY_STR
         else:
             strings = list()
             while process.poll() is None:
-                try:
-                    line = process.stdout.readline()
-                except UnicodeDecodeError as exc:
-                    line = f"fastpip: {exc.reason}\n"
-                if line:
-                    strings.append(line)
+                line_bytes = process.stdout.readline()
+                decoded_line = decode_bytes(line_bytes)
+                if decoded_line:
+                    strings.append(decoded_line)
                     if output:
-                        print(line, end="")
+                        print(decoded_line, end="")
                     for callback in self.__CLS_CALLBACK_DICT.values():
-                        callback(line.rstrip("\n"))
+                        callback(decoded_line.rstrip(os.linesep))
             out_strings = "".join(strings)
             return_code = process.returncode
         return out_strings, return_code

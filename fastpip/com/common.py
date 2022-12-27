@@ -1,12 +1,17 @@
 # coding: utf-8
 
 from enum import Enum
+from locale import getpreferredencoding
 from os import path
+from sys import getdefaultencoding
+
+from chardet import detect
 
 __all__ = [
     "CmdRead",
     "CONDA_ENVS",
     "DEFAULT_REQNAME",
+    "decode_bytes",
     "EMPTY_STR",
     "LIB_DIR_NAME",
     "M_CONDA_EXE",
@@ -21,6 +26,9 @@ __all__ = [
     "UNKNOWN_LOCATION",
     "VENV_CFG",
 ]
+
+__pdc = getdefaultencoding()
+__lpc = getpreferredencoding(False)
 
 LIB_DIR_NAME: str = "Lib"  # site-packages 所在目录名称（Windows 系统）
 SITEPKG_NAME: str = "site-packages"  # 第三方包的安装位置文件夹名称
@@ -37,6 +45,27 @@ PYENV_SEP_STR: str = "@"  # PyEnv 类实例的字符串形式中 Python 版本�
 CONDA_ENVS: str = "envs"  # Anaconda 的虚拟环境目录名
 M_CONDA_EXE: str = "conda.exe"  # conda 的可执行文件名
 P_CONDA_EXE: str = "_conda.exe"  # conda 的可执行文件名
+
+
+def decode_bytes(__bytes: bytes):
+    if not __bytes:
+        return EMPTY_STR
+    try:
+        return __bytes.decode(__pdc)
+    except UnicodeDecodeError as exc:
+        string = f"fastpip:\n\t{exc.reason}\n"
+    try:
+        return __bytes.decode(__lpc)
+    except UnicodeDecodeError as exc:
+        string = f"{string}\t{exc.reason}\n"
+    encoding = detect(__bytes)
+    if encoding is None:
+        return string
+    try:
+        return __bytes.decode(encoding)
+    except UnicodeDecodeError as exc:
+        string = f"{string}\t{exc.reason}\n"
+    return string
 
 
 class CmdRead(Enum):

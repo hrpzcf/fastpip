@@ -27,6 +27,7 @@ __all__ = [
     "all_py_paths",
     "Command",
     "cur_py_path",
+    "decode_bytes",
     "execute_commands",
     "LICENSE",
     "NAME",
@@ -40,6 +41,7 @@ __all__ = [
 ]
 
 from .__version__ import *
+from .com.common import decode_bytes
 from .core.fastpip import (
     PipInformation,
     PyEnv,
