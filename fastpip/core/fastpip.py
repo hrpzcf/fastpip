@@ -139,8 +139,8 @@ def execute_commands(
         while process.poll() is None:
             try:
                 line = process.stdout.readline()
-            except UnicodeDecodeError as e:
-                line = f"fastpip: {e.reason}\n"
+            except UnicodeDecodeError as exc:
+                line = f"fastpip: {exc.reason}\n"
             if line:
                 strings.append(line)
                 if output:
@@ -223,8 +223,8 @@ class PyEnv:
             while process.poll() is None:
                 try:
                     line = process.stdout.readline()
-                except UnicodeDecodeError as e:
-                    line = f"fastpip: {e.reason}\n"
+                except UnicodeDecodeError as exc:
+                    line = f"fastpip: {exc.reason}\n"
                 if line:
                     strings.append(line)
                     if output:
