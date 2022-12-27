@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import os
 from glob import glob
 
 from setuptools import find_packages, setup
@@ -12,6 +13,10 @@ try:
         long_description = mdfile.read()
 except Exception:
     long_description = description
+req_file = "requirements.txt"
+assert os.path.isfile(req_file), "'requirements.txt' does not exist!"
+with open(req_file, "rt", encoding="utf-8") as rf:
+    install_requires = [s.strip(os.linesep) for s in rf if s]
 
 setup(
     name=NAME,
@@ -27,7 +32,7 @@ setup(
         ("lib/site-packages/fastpip/readme", ["README.md", "LICENSE"]),
     ],
     platforms=["win32", "win_amd64"],
-    install_requires=["psutil>=5.7.2"],
+    install_requires=install_requires,
     python_requires=">=3.7",
     license="MIT License",
     classifiers=[
