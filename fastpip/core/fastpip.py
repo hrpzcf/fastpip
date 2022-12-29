@@ -48,7 +48,7 @@ _INIT_WK_DIR = os.getcwd()
 _STARTUP = STARTUPINFO()
 _STARTUP.dwFlags = STARTF_USESHOWWINDOW
 _STARTUP.wShowWindow = SW_HIDE
-
+_clean_pkgname = re.compile(r"[^<>=,!]+")
 
 # 预设的 PYPI 官方源及国内镜像源：
 index_urls = {
@@ -152,7 +152,7 @@ def execute_commands(
         except:
             return_code = 1
             out_strings = EMPTY_STR
-    return out_strings, return_code
+    return out_strings.replace("\r\n", "\n"), return_code
 
 
 def parse_package_names(names):
@@ -161,14 +161,13 @@ def parse_package_names(names):
 
     例如传入['fastpip>=0.5,<0.8']，返回['fastpip']。
     """
-    package_names = list()
-    pt = re.compile(r"[^<>=,!]+")
-    for n in names:
-        m_obj = pt.match(n)
-        if not m_obj:
+    clean_package_names = list()
+    for name in names:
+        matched_obj = _clean_pkgname.match(name)
+        if not matched_obj:
             continue
-        package_names.append(m_obj.group())
-    return package_names
+        clean_package_names.append(matched_obj.group())
+    return clean_package_names
 
 
 class PyEnv:
@@ -227,7 +226,7 @@ class PyEnv:
                         callback(decoded_line.rstrip(os.linesep))
             out_strings = "".join(strings)
             return_code = process.returncode
-        return out_strings, return_code
+        return out_strings.replace("\r\n", "\n"), return_code
 
     def __init__(self, path=None):
         """
@@ -694,10 +693,10 @@ class PyEnv:
         )
         if retcode:
             return EMPTY_STR
-        match_res = re.match(r"^global.index-url='(.+)'$", result)
-        if not match_res:
+        matched_result = re.search(r"(?<=global.index-url=').+(?=')", result)
+        if not matched_result:
             return EMPTY_STR
-        return match_res.group(1)
+        return matched_result.group()
 
     def install(self, *names, **kwargs):
         """
