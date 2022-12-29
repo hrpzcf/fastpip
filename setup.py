@@ -16,7 +16,7 @@ except Exception:
 req_file = "requirements.txt"
 assert os.path.isfile(req_file), "'requirements.txt' does not exist!"
 with open(req_file, "rt", encoding="utf-8") as rf:
-    install_requires = [s.strip(os.linesep) for s in rf if s]
+    install_requires = [s.strip() for s in rf if s]
 
 setup(
     name=NAME,
