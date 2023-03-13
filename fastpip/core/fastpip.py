@@ -721,13 +721,15 @@ class PyEnv:
 
         :param pre: bool, 查找目标是否包括预发行版和开发版，默认 False，即仅查找稳定版。
 
-        :param user: bool, 是否安装到您平台的 Python 用户安装目录，通常是 '~/.local/' 或 '％APPDATA％Python'，默认 False。
+        :param user: bool, 是否安装到您平台的 Python 用户安装目录，通常是 '~/.local/' 或 '%APPDATA%Python'，默认 False。
 
         :param compile: bool or 'auto', 是否将 Python 源文件编译为字节码，默认 'auto'，由 pip 决定。
 
         :param output: bool, 在终端上显示命令输出，默认 False。
 
         :param timeout: int or float, 任务超时限制，单位为秒，可设为 None 表示无限制，默认 None。
+
+        :param target: str, 安装的目标目录，指定此参数以将包安装到此参数指定的位置，默认 None。
 
         :return: tuple[tuple[str...], bool], 返回((包名...), 退出状态)元组。但包名 names 中只要有一个包不可安装，则所有传入的包名都不会被安装，且退出状态为 False。
         ```
@@ -739,6 +741,8 @@ class PyEnv:
         `timeout 参数值小于 1 则抛出 ValueError 异常;`
 
         `timeout 参数数据类型不是 int 或 float 或 None 则抛出 TypeError 异常；`
+
+        `target 参数不是 str 类型或不是 None 则抛出 ValueError 异常`
         """
         if not self.pip_ready or not names:
             return tuple()
@@ -752,6 +756,7 @@ class PyEnv:
             compile_sc,
             upgrade_strategy,
             force_reinstall,
+            target,
         ) = (
             kwargs.get("pre", False),
             kwargs.get("index_url", EMPTY_STR),
@@ -762,6 +767,7 @@ class PyEnv:
             kwargs.get("compile", "auto"),
             kwargs.get("strategy", None),
             kwargs.get("force_reinstall", False),
+            kwargs.get("target", None),
         )
         if not all(isinstance(s, str) for s in names):
             raise TypeError("包名参数的数据类型应为字符串。")
@@ -770,6 +776,8 @@ class PyEnv:
         self.__check_timeout_num(timeout)
         if upgrade_strategy not in (None, "eager", "needed"):
             raise ValueError("strategy 参数可选值为 'eager'、'needed' 或 None。")
+        if not isinstance(target, (str, type(None))):
+            raise ValueError(f"target 参数类型应为 str 或 None")
         cmds = Command(self.interpreter, *_PIPCMDS["INSTALL"], *names)
         if install_pre:
             cmds.append("--pre")
@@ -789,6 +797,8 @@ class PyEnv:
             cmds.append("--compile")
         else:
             cmds.append("--no-compile")
+        if target is not None:
+            cmds.extend(("-t", target))
         return names, not self.__execute(cmds, output, timeout)[1]
 
     def uninstall(self, *names, **kwargs):
